@@ -9,7 +9,7 @@ TaxiDay es una aplicación destinada a la gestión de jornadas y carreras de tax
 El objetivo es crear una plataforma que permita a los taxistas registrar y gestionar sus jornadas laborales y carreras, accediendo a la información tanto desde el móvil como desde la web.
 
 🗂️ Estructura del Proyecto
-
+```
 TaxiDay/
 ├── Backend/               # Backend en Java (Spring Boot)
 │   ├── taxi_day/          # Proyecto Spring Boot
@@ -21,8 +21,8 @@ TaxiDay/
 │   ├── src/               # Código fuente de la app web
 │   └── Dockerfile         # Dockerfile para la web
 └── docker-compose.yml     # Orquestación de contenedores
-Image
 
+```
 🛠️ Tecnologías Utilizadas
 
 Backend: Java con Spring Boot
