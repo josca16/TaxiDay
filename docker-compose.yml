@@ -2,50 +2,21 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    build: ./Backend
     container_name: spring-boot-app
     ports:
-      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./Backend:/app
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mariadb://database:3306/AppTaxiDay
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
     depends_on:
-      database:
-        condition: service_healthy
+      - database  # No usamos "service_healthy" de momento
     networks:
       - taxi-net
-    restart: unless-stopped
-
-  web-frontend:
-    build:
-      context: ./WebFrontend
-      dockerfile: Dockerfile
-    container_name: react-web-app
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://backend:8080
-    networks:
-      - taxi-net
-    restart: unless-stopped
-
-  mobile-frontend:
-    build:
-      context: ./MobileFrontend
-      dockerfile: Dockerfile
-    container_name: react-native-app
-    ports:
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
-    environment:
-      - REACT_APP_API_URL=http://backend:8080
-    networks:
-      - taxi-net
-    restart: unless-stopped
+    restart: on-failure
 
   database:
     image: mariadb:11.2
@@ -57,13 +28,26 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -proot || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
     networks:
       - taxi-net
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    container_name: taxiday_adminer
+    ports:
+      - "8082:8080"
+    depends_on:
+      - database
+    networks:
+      - taxi-net
     restart: unless-stopped
 
 networks:

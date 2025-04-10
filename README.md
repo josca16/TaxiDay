@@ -1,78 +1,120 @@
-🚖 TaxiDay - TFG de Desarrollo de Aplicaciones Multiplataforma
-
-📚 Descripción del Proyecto
+## 🚖 TaxiDay - TFG de Desarrollo de Aplicaciones Multiplataforma
 
 TaxiDay es una aplicación destinada a la gestión de jornadas y carreras de taxistas, facilitando el control de sus actividades diarias. El proyecto está diseñado para ser multiplataforma, contando con aplicaciones tanto para dispositivos móviles como para acceso web.
 
-🌟 Objetivo Principal
+---
 
-El objetivo es crear una plataforma que permita a los taxistas registrar y gestionar sus jornadas laborales y carreras, accediendo a la información tanto desde el móvil como desde la web.
+### 🌟 Objetivo Principal
 
-🗂️ Estructura del Proyecto
+Crear una plataforma que permita a los taxistas registrar y gestionar sus jornadas laborales y carreras, accediendo a la información tanto desde el móvil como desde la web, con especial atención a una experiencia rápida, sencilla y segura.
 
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Backend:** Java con Spring Boot
+- **Frontend Web:** React
+- **Frontend Móvil:** React Native con Expo
+- **Base de Datos:** MariaDB
+- **Contenedores:** Docker y Docker Compose
+- **Herramientas:** Adminer para gestión visual de la base de datos
+
+---
+
+## 🗂️ Estructura del Proyecto
+
+```
 TaxiDay/
 ├── Backend/               # Backend en Java (Spring Boot)
-│   ├── taxi_day/          # Proyecto Spring Boot
-│   └── Dockerfile         # Dockerfile del backend
+│   ├── src/               # Código fuente
+│   └── Dockerfile         # Dockerfile para el backend
 ├── MobileFrontend/        # Frontend móvil (React Native con Expo)
-│   ├── src/               # Código fuente de la app móvil
-│   └── Dockerfile         # Dockerfile para el móvil
+│   └── Dockerfile         # (pendiente de implementación)
 ├── WebFrontend/           # Frontend web (React)
-│   ├── src/               # Código fuente de la app web
-│   └── Dockerfile         # Dockerfile para la web
+│   └── Dockerfile         # (pendiente de implementación)
+├── init.sql               # Script para inicializar la base de datos
 └── docker-compose.yml     # Orquestación de contenedores
-Image
+```
 
-🛠️ Tecnologías Utilizadas
+---
 
-Backend: Java con Spring Boot
+## 🐳 Gestión de Docker para TaxiDay
 
-Frontend Móvil: React Native con Expo
+### 🔄 Comando principal (modo *detached*)
 
-Frontend Web: React
+```bash
+docker compose up -d --build
+```
 
-Base de Datos: MariaDB
+- ✅ Lanza todos los contenedores en segundo plano
+- 🔄 Reconstruye si hay cambios
 
-Contenedores: Docker y Docker Compose
+### 📋 Ver logs de los servicios
 
-🐳 Levantar el Proyecto con Docker
+```bash
+docker compose logs -f
+```
 
-Para ejecutar el proyecto completo, asegúrate de tener Docker y Docker Compose instalados.
+Ver logs de un contenedor específico:
 
-Comando para iniciar todos los servicios
+```bash
+docker compose logs -f spring-boot-app
+```
 
-sudo docker compose up --build
+### ⛔ Parar todos los contenedores
 
-Servicios Disponibles
+```bash
+docker compose down
+```
 
-Frontend Web: http://localhost:3000
+### 🐚 Acceder a la base de datos desde el contenedor
 
-Frontend Móvil (Expo Web): http://localhost:19000
+```bash
+docker exec -it taxiday_db bash
+```
 
-Backend (Spring Boot): http://localhost:8080
+Y luego:
 
-💡 Decisiones de Arquitectura
+```bash
+mariadb -uroot -proot
+```
 
-Frontend Móvil y Web Separados
-Se decidió crear dos frontends independientes (móvil y web) para facilitar el desarrollo y mantener interfaces adaptadas a cada dispositivo.
+---
 
-Ambos frontends se conectan al mismo backend en Spring Boot.
+### 🌐 Acceder a Adminer
 
-Uso de Docker para el Entorno de Desarrollo
-El proyecto se ejecuta completamente en contenedores para garantizar un entorno limpio y replicable.
+Abre en tu navegador:
 
-Los contenedores se crean automáticamente al levantar el entorno, garantizando consistencia y evitando problemas de dependencia.
+```text
+http://localhost:8082
+```
 
-💻 Próximos Pasos
+- **Servidor:** `database`
+- **Usuario:** `root`
+- **Contraseña:** `root`
+- **Base de datos:** `AppTaxiDay`
 
-Integración del backend con el frontend móvil y web.
+---
 
-Implementación de la funcionalidad de registro y gestión de carreras.
+## 💡 Decisiones de Arquitectura
 
-Pruebas de integración y ajustes de la interfaz.
+- Frontend móvil y web se mantienen separados para ofrecer una mejor experiencia según el dispositivo
+- Todo el sistema se ejecuta en contenedores para un entorno limpio, replicable y consistente
+- Adminer está disponible para una visualización cómoda de la base de datos
 
-📝 Notas Adicionales
+---
 
-Todo el proyecto se gestiona desde Docker, lo que facilita el despliegue en diferentes entornos de desarrollo.
+## 🚧 Próximos Pasos
 
-La estructura de carpetas está pensada para mantener la independencia de cada servicio.
+- Crear endpoints REST en el backend para iniciar la conexión
+- Implementar autenticación y lógica de negocio
+- Conectar los frontends al backend
+- Añadir sensores de localización GPS en la app móvil
+
+---
+
+## ✅ Estado actual
+
+✔️ Backend operativo y contenedor funcional con acceso a MariaDB y Adminer. Listo para el desarrollo.
+
+

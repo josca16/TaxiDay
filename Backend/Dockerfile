@@ -1,22 +1,22 @@
-# Usar imagen base con Java y Maven
-FROM maven:3.9.6-eclipse-temurin-17
+# Imagen base con Java y Maven Wrapper soporte
+FROM eclipse-temurin:17-jdk-alpine
 
-# Instalar curl y unzip
-RUN apt-get update && \
-    apt-get install -y curl unzip && \
-    rm -rf /var/lib/apt/lists/*
-
-# Crear directorio de trabajo
+# Crear directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar el proyecto al contenedor
-COPY . .
+# Copiar configuración de Maven Wrapper y POM
+COPY .mvn .mvn
+COPY mvnw .
+COPY pom.xml .
 
-# Construir el proyecto
-RUN mvn clean install
+# Descargar dependencias para acelerar compilación posterior
+RUN ./mvnw dependency:go-offline
 
-# Exponer el puerto
-EXPOSE 8080
+# Copiar el resto del código fuente
+COPY src ./src
 
-# Ejecutar la aplicación
-CMD ["java", "-jar", "target/taxiday-0.0.1-SNAPSHOT.jar"]
+# Exponer el puerto en el que Spring Boot se ejecutará
+EXPOSE 8081
+
+# Comando para ejecutar Spring Boot
+CMD ["./mvnw", "spring-boot:run"]
