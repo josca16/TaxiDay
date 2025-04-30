@@ -1,0 +1,74 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaxiDay - Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+    form { margin-bottom: 20px; }
+    input { margin-right: 8px; }
+    button { padding: 4px 8px; }
+  </style>
+</head>
+<body>
+  <h1>TaxiDay - Gestión de Taxistas</h1>
+  <button onclick="window.location.href='/login.html'">Cerrar Sesión</button>
+
+  <form id="createForm">
+    <input type="text" id="nombre" placeholder="Nombre" required />
+    <input type="text" id="apellidos" placeholder="Apellidos" required />
+    <input type="text" id="licencia" placeholder="Licencia" required />
+    <input type="password" id="contrasena" placeholder="Contraseña" required />
+    <button type="submit">Añadir Taxista</button>
+  </form>
+
+  <button id="refresh">Recargar lista</button>
+  <table id="taxistasTable">
+    <thead>
+      <tr>
+        <th>ID</th><th>Nombre</th><th>Apellidos</th><th>Licencia</th><th>Contraseña</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiUrl = '/taxistas';
+    const tbody = document.querySelector('#taxistasTable tbody');
+    document.getElementById('refresh').onclick = loadTaxistas;
+    document.getElementById('createForm').onsubmit = async e => {
+      e.preventDefault();
+      const nuevo = {
+        nombre: document.getElementById('nombre').value,
+        apellidos: document.getElementById('apellidos').value,
+        licencia: document.getElementById('licencia').value,
+        contrasena: document.getElementById('contrasena').value
+      };
+      const r = await fetch(apiUrl, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nuevo)});
+      if (r.status===201) { loadTaxistas(); e.target.reset(); }
+      else alert('Error al crear.');
+    };
+    async function loadTaxistas() {
+      tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      tbody.innerHTML = data.length?
+        data.map(t => `<tr>
+          <td>${t.idTaxista}</td><td>${t.nombre}</td><td>${t.apellidos}</td>
+          <td>${t.licencia}</td><td>${t.contrasena}</td>
+          <td><button onclick="borrar(${t.idTaxista})">Borrar</button></td>
+        </tr>`).join(''):
+        '<tr><td colspan="6">No hay taxistas</td></tr>';
+    }
+    async function borrar(id) {
+      if (!confirm('Borrar taxista #' + id + '?')) return;
+      const r = await fetch(`${apiUrl}/${id}`,{method:'DELETE'});
+      if (r.status===204) loadTaxistas(); else alert('Error al borrar');
+    }
+    loadTaxistas();
+  </script>
+</body>
+</html>

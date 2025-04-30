@@ -1,0 +1,42 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaxiDay - Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 4px; width: 300px; text-align: center; }
+    .box input { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    .box button { width: 100%; padding: 8px; }
+    .link { margin-top: 10px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Login TaxiDay</h2>
+    <input id="licencia" placeholder="Licencia" />
+    <input id="contrasena" type="password" placeholder="Contraseña" />
+    <button onclick="doLogin()">Entrar</button>
+    <a class="link" href="/register.html">Crear cuenta</a>
+    <p id="msg" style="color:red"></p>
+  </div>
+  <script>
+    async function doLogin() {
+      const msg = document.getElementById('msg');
+      const licencia = document.getElementById('licencia').value;
+      const contrasena = document.getElementById('contrasena').value;
+      msg.textContent = '';
+      const resp = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ licencia, contrasena })
+      });
+      if (resp.status === 200) {
+        window.location.href = '/index.html';
+      } else {
+        msg.textContent = 'Credenciales inválidas';
+      }
+    }
+  </script>
+</body>
+</html>
