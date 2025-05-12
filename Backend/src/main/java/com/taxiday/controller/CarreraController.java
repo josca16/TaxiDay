@@ -1,4 +1,4 @@
-// CarreraController.java
+// src/main/java/com/taxiday/controller/CarreraController.java
 package com.taxiday.controller;
 
 import com.taxiday.model.Carrera;
@@ -13,7 +13,9 @@ import java.util.List;
 public class CarreraController {
 
     private final CarreraRepository repo;
-    public CarreraController(CarreraRepository repo) { this.repo = repo; }
+    public CarreraController(CarreraRepository repo) {
+        this.repo = repo;
+    }
 
     @PostMapping
     public ResponseEntity<Carrera> crear(@RequestBody Carrera c) {
@@ -22,7 +24,9 @@ public class CarreraController {
     }
 
     @GetMapping
-    public List<Carrera> listar() { return repo.findAll(); }
+    public List<Carrera> listar() {
+        return repo.findAll();
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Carrera> get(@PathVariable int id) {
@@ -35,7 +39,8 @@ public class CarreraController {
     public ResponseEntity<Carrera> actualizar(@PathVariable int id,
                                               @RequestBody Carrera cambios) {
         return repo.findById(id).map(c -> {
-            c.setFechaFinal(cambios.getFechaInicio()); // si lo tuvieras
+            // Si quisieras permitir modificar la fechaInicio:
+            c.setFechaInicio(cambios.getFechaInicio());
             c.setImporteTotal(cambios.getImporteTotal());
             c.setImporteTaximetro(cambios.getImporteTaximetro());
             c.setTipoPago(cambios.getTipoPago());

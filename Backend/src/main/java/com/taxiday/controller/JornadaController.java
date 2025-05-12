@@ -1,7 +1,8 @@
-// JornadaController.java
+// src/main/java/com/taxiday/controller/JornadaController.java
 package com.taxiday.controller;
 
 import com.taxiday.model.Jornada;
+import com.taxiday.model.Jornada.EstadoJornada;
 import com.taxiday.repository.JornadaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,9 @@ import java.util.List;
 public class JornadaController {
 
     private final JornadaRepository repo;
-    public JornadaController(JornadaRepository repo) { this.repo = repo; }
+    public JornadaController(JornadaRepository repo) {
+        this.repo = repo;
+    }
 
     @PostMapping
     public ResponseEntity<Jornada> crear(@RequestBody Jornada j) {
@@ -22,7 +25,9 @@ public class JornadaController {
     }
 
     @GetMapping
-    public List<Jornada> listar() { return repo.findAll(); }
+    public List<Jornada> listar() {
+        return repo.findAll();
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Jornada> get(@PathVariable int id) {
@@ -35,6 +40,7 @@ public class JornadaController {
     public ResponseEntity<Jornada> actualizar(@PathVariable int id,
                                               @RequestBody Jornada cambios) {
         return repo.findById(id).map(j -> {
+            j.setFechaInicio(cambios.getFechaInicio());
             j.setFechaFinal(cambios.getFechaFinal());
             j.setEstado(cambios.getEstado());
             j.setTaxista(cambios.getTaxista());
@@ -47,5 +53,19 @@ public class JornadaController {
         if (!repo.existsById(id)) return ResponseEntity.notFound().build();
         repo.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Cierra la jornada: el front envía {"fechaFinal":"2025-05-12T20:00:00"} */
+    @PostMapping("/{id}/cerrar")
+    public ResponseEntity<Jornada> cerrarJornada(
+            @PathVariable int id,
+            @RequestBody Jornada datos
+    ) {
+        return repo.findById(id).map(jornada -> {
+            jornada.setFechaFinal(datos.getFechaFinal());
+            jornada.setEstado(EstadoJornada.cerrada);
+            repo.save(jornada);
+            return ResponseEntity.ok(jornada);
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

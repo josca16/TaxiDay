@@ -18,6 +18,13 @@ public class AuthController {
         this.repo = repo;
     }
 
+    /**
+     * 1) El front envía un JSON con 'licencia' y 'contrasena'.
+     * 2) Lo convertimos en un Map para extraer esos valores.
+     * 3) Buscamos en la BBDD un Taxista con esa licencia.
+     * 4) Si no existe o la contraseña no coincide, devolvemos 401.
+     * 5) Si todo coincide, devolvemos 200 OK con un mensaje de éxito.
+     */
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody Map<String,String> body) {
         // 1) Sacar los datos que envía el cliente (JSON -> Map)
@@ -29,13 +36,13 @@ public class AuthController {
 
         // 3) Comparar la contraseña recibida con la que está en la base
         if (t == null || !t.getContrasena().equals(contrasena)) {
-            // Si no existe o no coincide, devolvemos 401 Unauthorized
+            // 4) Si no existe o no coincide, devolvemos 401 Unauthorized
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
                     .body("Credenciales inválidas");
         }
 
-        // 4) Si todo es correcto, devolvemos 200 OK
+        // 5) Si todo es correcto, devolvemos 200 OK
         return ResponseEntity.ok("Login correcto");
     }
 }
