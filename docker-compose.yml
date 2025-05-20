@@ -1,58 +1,42 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  backend:
-    build: ./Backend
-    container_name: spring-boot-app
-    ports:
-      - "8081:8081"
-    volumes:
-      - ./Backend:/app
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://database:3306/AppTaxiDay
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
-    depends_on:
-      - database  # No usamos "service_healthy" de momento
-    networks:
-      - taxi-net
-    restart: on-failure
-
   database:
-    image: mariadb:11.2
+    image: mariadb:10.7
     container_name: taxiday_db
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: AppTaxiDay
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -proot || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 20
-      start_period: 40s
-    networks:
-      - taxi-net
-    restart: unless-stopped
 
   adminer:
     image: adminer
-    container_name: taxiday_adminer
+    restart: always
     ports:
       - "8082:8080"
+
+  backend:
+    build:
+      context: ./Backend
+    container_name: spring-boot-app
     depends_on:
       - database
-    networks:
-      - taxi-net
-    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://database:3306/AppTaxiDay
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
 
-networks:
-  taxi-net:
-    driver: bridge
-
-volumes:
-  db_data:
+  webfrontend:
+    build:
+      context: ./Frontend
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"

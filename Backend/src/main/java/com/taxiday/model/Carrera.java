@@ -30,7 +30,7 @@ public class Carrera {
     private TipoPago tipoPago = TipoPago.efectivo;
 
     @ManyToOne
-    @JoinColumn(name = "idTurno")
+    @JoinColumn(name = "id_turno") // <-- usa snake_case
     private Turno turno;
 
     public enum TipoPago {

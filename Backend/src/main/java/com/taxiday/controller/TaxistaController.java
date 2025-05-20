@@ -10,7 +10,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/taxistas")
+@RequestMapping("/api/taxistas")
 public class TaxistaController {
 
     private final TaxistaService service;

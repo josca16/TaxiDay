@@ -12,6 +12,7 @@ public class Taxista {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idTaxista") // <-- usa snake_case
     private int idTaxista;
 
     @Column(length = 50, nullable = false)

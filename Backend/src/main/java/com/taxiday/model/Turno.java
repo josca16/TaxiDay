@@ -33,7 +33,7 @@ public class Turno {
     private EstadoTurno estado = EstadoTurno.abierto;
 
     @ManyToOne
-    @JoinColumn(name = "idJornada")
+    @JoinColumn(name = "id_jornada") // <-- usa snake_case
     private Jornada jornada;
 
     public enum EstadoTurno {

@@ -14,6 +14,7 @@ public class Jornada {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_jornada") // <-- usa snake_case
     private int idJornada;
 
     @Column(nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
@@ -27,7 +28,7 @@ public class Jornada {
     private EstadoJornada estado = EstadoJornada.activa;
 
     @ManyToOne
-    @JoinColumn(name = "idTaxista")
+    @JoinColumn(name = "id_taxista") // <-- usa snake_case
     private Taxista taxista;
 
     public enum EstadoJornada {

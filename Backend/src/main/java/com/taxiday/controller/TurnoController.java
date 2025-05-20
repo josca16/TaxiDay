@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/turnos")
+@RequestMapping("/api/turnos")
 public class TurnoController {
 
     private final TurnoRepository repo;

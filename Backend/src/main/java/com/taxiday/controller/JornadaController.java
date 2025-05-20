@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/jornadas")
+@RequestMapping("/api/jornadas")
 public class JornadaController {
 
     private final JornadaRepository repo;
