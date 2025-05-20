@@ -1,74 +1,143 @@
 // src/main/java/com/taxiday/controller/TurnoController.java
 package com.taxiday.controller;
 
+import com.taxiday.dto.TurnoDto;
+import com.taxiday.model.Jornada;
 import com.taxiday.model.Turno;
 import com.taxiday.model.Turno.EstadoTurno;
-import com.taxiday.repository.TurnoRepository;
+import com.taxiday.service.JornadaService;
+import com.taxiday.service.TurnoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime; // Importar LocalDateTime
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/turnos")
 public class TurnoController {
 
-    private final TurnoRepository repo;
-    public TurnoController(TurnoRepository repo) {
-        this.repo = repo;
+    private final TurnoService service;
+    private final JornadaService jornadaService; // Inyectar JornadaService
+
+    public TurnoController(TurnoService service, JornadaService jornadaService) { // Modificar constructor
+        this.service = service;
+        this.jornadaService = jornadaService;
+    }
+    
+    // Helper para convertir Turno a TurnoDto
+    private TurnoDto convertToDto(Turno turno) {
+        if (turno == null) return null;
+        TurnoDto turnoDto = new TurnoDto();
+        turnoDto.setIdTurno(turno.getIdTurno());
+        turnoDto.setKmInicial(turno.getKmInicial());
+        turnoDto.setKmFinal(turno.getKmFinal());
+        turnoDto.setFechaInicio(turno.getFechaInicio());
+        turnoDto.setFechaFinal(turno.getFechaFinal());
+        turnoDto.setEstado(turno.getEstado());
+        // No incluimos Jornada en el DTO de Turno
+        return turnoDto;
+    }
+    
+     // Helper para convertir TurnoDto a Turno
+    private Turno convertToEntity(TurnoDto turnoDto) {
+         if (turnoDto == null) return null;
+         Turno turno = new Turno();
+         turno.setIdTurno(turnoDto.getIdTurno());
+         turno.setKmInicial(turnoDto.getKmInicial());
+         turno.setKmFinal(turnoDto.getKmFinal());
+         // La fechaInicio y fechaFinal se establecen en el controlador o servicio
+         // turno.setFechaInicio(turnoDto.getFechaInicio()); // Ya no se setea desde DTO al crear
+         // turno.setFechaFinal(turnoDto.getFechaFinal()); // Ya no se setea desde DTO al crear
+         turno.setEstado(turnoDto.getEstado());
+         // La Jornada asociada debería manejarse al crear/actualizar el Turno
+         return turno;
     }
 
-    @PostMapping
-    public ResponseEntity<Turno> crear(@RequestBody Turno t) {
-        Turno saved = repo.save(t);
-        return ResponseEntity.status(201).body(saved);
+    @PostMapping("/jornada/{jornadaId}") // Añadimos jornadaId como variable de path
+    public ResponseEntity<TurnoDto> crear(@PathVariable int jornadaId, @RequestBody TurnoDto turnoDto) {
+        Optional<Jornada> jornadaOptional = jornadaService.buscarPorId(jornadaId); // Buscar la Jornada por ID
+        if (!jornadaOptional.isPresent()) {
+            return ResponseEntity.notFound().build(); // Retornar 404 si la jornada no existe
+        }
+        Jornada jornada = jornadaOptional.get();
+
+        Turno turno = convertToEntity(turnoDto);
+        turno.setFechaInicio(LocalDateTime.now()); // Establecer fecha y hora actual
+        turno.setJornada(jornada); // Asignar la Jornada al Turno
+
+        Turno saved = service.crearTurno(turno);
+        return ResponseEntity.status(201).body(convertToDto(saved));
     }
 
     @GetMapping
-    public List<Turno> listar() {
-        return repo.findAll();
+    public List<TurnoDto> listar() {
+        List<Turno> turnos = service.listarTurnos();
+        return turnos.stream()
+                       .map(this::convertToDto)
+                       .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Turno> get(@PathVariable int id) {
-        return repo.findById(id)
+    public ResponseEntity<TurnoDto> get(@PathVariable int id) {
+        return service.buscarPorId(id)
+                   .map(this::convertToDto)
                    .map(ResponseEntity::ok)
                    .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Turno> actualizar(@PathVariable int id,
-                                            @RequestBody Turno cambios) {
-        return repo.findById(id).map(t -> {
-            t.setKmInicial(cambios.getKmInicial());
-            t.setKmFinal(cambios.getKmFinal());
-            t.setFechaInicio(cambios.getFechaInicio());
-            t.setFechaFinal(cambios.getFechaFinal());
-            t.setEstado(cambios.getEstado());
-            t.setJornada(cambios.getJornada());
-            return ResponseEntity.ok(repo.save(t));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<TurnoDto> actualizar(@PathVariable int id,
+                                            @RequestBody TurnoDto cambiosDto) {
+        // En la actualización, primero obtenemos la entidad existente
+        Optional<Turno> existingTurnoOptional = service.buscarPorId(id);
+        if (!existingTurnoOptional.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        Turno existingTurno = existingTurnoOptional.get();
+        
+        // Aplicar cambios del DTO a la entidad existente
+        existingTurno.setKmInicial(cambiosDto.getKmInicial());
+        existingTurno.setKmFinal(cambiosDto.getKmFinal());
+        existingTurno.setFechaInicio(cambiosDto.getFechaInicio());
+        existingTurno.setFechaFinal(cambiosDto.getFechaFinal());
+        existingTurno.setEstado(cambiosDto.getEstado());
+        // La Jornada asociada no se actualiza desde el DTO aquí
+        
+        Turno updated = service.actualizarTurno(id, existingTurno); // Pasar la entidad actualizada al servicio
+        
+        if (updated == null) { // Aunque el servicio debería devolver la entidad actualizada o null si falla
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(convertToDto(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> borrar(@PathVariable int id) {
-        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
-        repo.deleteById(id);
+        boolean deleted = service.borrarTurno(id);
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 
     /** Cierra un turno: front envía {"fechaFinal":"2025-05-12T18:30:00","kmFinal":123.4} */
     @PostMapping("/{id}/cerrar")
-    public ResponseEntity<Turno> cerrarTurno(
+    public ResponseEntity<TurnoDto> cerrarTurno(
             @PathVariable int id,
-            @RequestBody Turno datos
+            @RequestBody TurnoDto datosDto
     ) {
-        return repo.findById(id).map(turno -> {
-            turno.setFechaFinal(datos.getFechaFinal());
-            turno.setKmFinal(datos.getKmFinal());
-            turno.setEstado(EstadoTurno.cerrado);
-            repo.save(turno);
-            return ResponseEntity.ok(turno);
-        }).orElse(ResponseEntity.notFound().build());
+        // Para cerrar el turno, solo necesitamos fechaFinal y kmFinal del DTO
+        // Creamos una entidad parcial con estos datos para pasar al servicio
+        Turno datosCierre = new Turno();
+        datosCierre.setFechaFinal(datosDto.getFechaFinal());
+        datosCierre.setKmFinal(datosDto.getKmFinal());
+        
+        return service.cerrarTurno(id, datosCierre)
+                .map(this::convertToDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

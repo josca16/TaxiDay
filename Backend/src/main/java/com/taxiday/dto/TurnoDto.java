@@ -1,48 +1,19 @@
-package com.taxiday.model;
+package com.taxiday.dto;
 
-import jakarta.persistence.*;
-import lombok.*;
+import com.taxiday.model.Turno.EstadoTurno;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "turno")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Turno {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_turno")
+public class TurnoDto {
     private Integer idTurno;
-
-    @Column(name = "km_inicial")
     private Double kmInicial;
-
-    @Column(name = "km_final")
     private Double kmFinal;
-
-    @Column(name = "fecha_inicio", nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime fechaInicio;
-
-    @Column(name = "fecha_final", columnDefinition = "DATETIME")
     private LocalDateTime fechaFinal;
+    private EstadoTurno estado;
+    // No incluir Jornada aquí para evitar referencias circulares y simplificar
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 7)
-    private EstadoTurno estado = EstadoTurno.abierto;
-
-    @ManyToOne
-    @JoinColumn(name = "id_jornada")
-    private Jornada jornada;
-
-    public enum EstadoTurno {
-        abierto,
-        cerrado
-    }
-
-    // Getters y setters añadidos explícitamente para compatibilidad
+    // Getters y setters añadidos explícitamente
 
     public Integer getIdTurno() {
         return idTurno;
@@ -91,12 +62,4 @@ public class Turno {
     public void setEstado(EstadoTurno estado) {
         this.estado = estado;
     }
-
-    public Jornada getJornada() {
-        return jornada;
-    }
-
-    public void setJornada(Jornada jornada) {
-        this.jornada = jornada;
-    }
-}
+} 

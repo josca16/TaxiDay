@@ -1,46 +1,18 @@
-package com.taxiday.model;
+package com.taxiday.dto;
 
-import jakarta.persistence.*;
-import lombok.*;
+import com.taxiday.model.Carrera.TipoPago;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "carrera")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Carrera {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_carrera")
+public class CarreraDto {
     private Integer idCarrera;
-
-    @Column(name = "fecha_inicio", nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime fechaInicio;
-
-    @Column(name = "importe_total", nullable = false)
     private Double importeTotal;
-
-    @Column(name = "importe_taximetro", columnDefinition = "DOUBLE DEFAULT 0")
     private Double importeTaximetro;
+    private TipoPago tipoPago;
+    // No incluir Turno aquí para evitar referencias circulares y simplificar
 
-    @Column(name = "tipo_pago", length = 7)
-    @Enumerated(EnumType.STRING)
-    private TipoPago tipoPago = TipoPago.efectivo;
-
-    @ManyToOne
-    @JoinColumn(name = "id_turno")
-    private Turno turno;
-
-    public enum TipoPago {
-        efectivo,
-        tarjeta,
-        bizum
-    }
-
-    // Getters y setters añadidos explícitamente para compatibilidad
+    // Getters y setters añadidos explícitamente
 
     public Integer getIdCarrera() {
         return idCarrera;
@@ -81,12 +53,4 @@ public class Carrera {
     public void setTipoPago(TipoPago tipoPago) {
         this.tipoPago = tipoPago;
     }
-
-    public Turno getTurno() {
-        return turno;
-    }
-
-    public void setTurno(Turno turno) {
-        this.turno = turno;
-    }
-}
+} 

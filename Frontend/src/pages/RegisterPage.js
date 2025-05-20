@@ -29,9 +29,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div>
+    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
       <h2>Registro de Taxista</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"
           name="nombre"
@@ -39,6 +39,7 @@ export default function RegisterPage() {
           value={form.nombre}
           onChange={handleChange}
           required
+          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
         />
         <input
           type="text"
@@ -47,6 +48,7 @@ export default function RegisterPage() {
           value={form.apellidos}
           onChange={handleChange}
           required
+          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
         />
         <input
           type="text"
@@ -55,6 +57,7 @@ export default function RegisterPage() {
           value={form.licencia}
           onChange={handleChange}
           required
+          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
         />
         <input
           type="password"
@@ -63,10 +66,13 @@ export default function RegisterPage() {
           value={form.contrasena}
           onChange={handleChange}
           required
+          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
         />
-        <button type="submit">Registrar</button>
+        <button type="submit" className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:border-blue-300">
+          Registrar
+        </button>
+        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
       </form>
-      {error && <p style={{color:'red'}}>{error}</p>}
     </div>
   );
 }

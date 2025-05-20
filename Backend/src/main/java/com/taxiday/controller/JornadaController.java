@@ -1,71 +1,123 @@
 // src/main/java/com/taxiday/controller/JornadaController.java
 package com.taxiday.controller;
 
+import com.taxiday.dto.JornadaDto;
+import com.taxiday.dto.TaxistaDto; // Necesario para la conversión
 import com.taxiday.model.Jornada;
 import com.taxiday.model.Jornada.EstadoJornada;
-import com.taxiday.repository.JornadaRepository;
+import com.taxiday.model.Taxista; // Necesario para la conversión
+import com.taxiday.service.JornadaService;
+import com.taxiday.repository.TaxistaRepository; // Necesario para buscar Taxista en conversión
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/jornadas")
 public class JornadaController {
 
-    private final JornadaRepository repo;
-    public JornadaController(JornadaRepository repo) {
-        this.repo = repo;
+    private final JornadaService service;
+    private final TaxistaRepository taxistaRepo; // Necesario para buscar Taxista en conversión
+
+    public JornadaController(JornadaService service, TaxistaRepository taxistaRepo) {
+        this.service = service;
+        this.taxistaRepo = taxistaRepo;
+    }
+
+    // Helper para convertir Jornada a JornadaDto
+    private JornadaDto convertToDto(Jornada jornada) {
+        if (jornada == null) return null;
+        JornadaDto jornadaDto = new JornadaDto();
+        jornadaDto.setIdJornada(jornada.getIdJornada());
+        jornadaDto.setFechaInicio(jornada.getFechaInicio());
+        jornadaDto.setFechaFinal(jornada.getFechaFinal());
+        jornadaDto.setEstado(jornada.getEstado());
+        // Convertir Taxista entity a TaxistaDto
+        if (jornada.getTaxista() != null) {
+            TaxistaDto taxistaDto = new TaxistaDto();
+            taxistaDto.setIdTaxista(jornada.getTaxista().getIdTaxista());
+            taxistaDto.setLicencia(jornada.getTaxista().getLicencia());
+            taxistaDto.setNombre(jornada.getTaxista().getNombre());
+            taxistaDto.setApellidos(jornada.getTaxista().getApellidos());
+            taxistaDto.setEmail(jornada.getTaxista().getEmail());
+            taxistaDto.setTelefono(jornada.getTaxista().getTelefono());
+            jornadaDto.setTaxista(taxistaDto);
+        }
+        return jornadaDto;
+    }
+    
+     // Helper para convertir JornadaDto a Jornada
+    private Jornada convertToEntity(JornadaDto jornadaDto) {
+         if (jornadaDto == null) return null;
+         Jornada jornada = new Jornada();
+         jornada.setIdJornada(jornadaDto.getIdJornada());
+         jornada.setFechaInicio(jornadaDto.getFechaInicio());
+         jornada.setFechaFinal(jornadaDto.getFechaFinal());
+         jornada.setEstado(jornadaDto.getEstado());
+         // Convertir TaxistaDto a Taxista entity (requiere buscar la entidad)
+         if (jornadaDto.getTaxista() != null && jornadaDto.getTaxista().getIdTaxista() != 0) {
+             Taxista taxista = taxistaRepo.findById(jornadaDto.getTaxista().getIdTaxista()).orElse(null);
+             jornada.setTaxista(taxista);
+         }
+         return jornada;
     }
 
     @PostMapping
-    public ResponseEntity<Jornada> crear(@RequestBody Jornada j) {
-        Jornada saved = repo.save(j);
-        return ResponseEntity.status(201).body(saved);
+    public ResponseEntity<JornadaDto> crear(@RequestBody JornadaDto jornadaDto) {
+        Jornada jornada = convertToEntity(jornadaDto);
+        Jornada saved = service.crearJornada(jornada);
+        return ResponseEntity.status(201).body(convertToDto(saved));
     }
 
     @GetMapping
-    public List<Jornada> listar() {
-        return repo.findAll();
+    public List<JornadaDto> listar() {
+        List<Jornada> jornadas = service.listarJornadas();
+        return jornadas.stream()
+                       .map(this::convertToDto)
+                       .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Jornada> get(@PathVariable int id) {
-        return repo.findById(id)
+    public ResponseEntity<JornadaDto> get(@PathVariable int id) {
+        return service.buscarPorId(id)
+                   .map(this::convertToDto)
                    .map(ResponseEntity::ok)
                    .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Jornada> actualizar(@PathVariable int id,
-                                              @RequestBody Jornada cambios) {
-        return repo.findById(id).map(j -> {
-            j.setFechaInicio(cambios.getFechaInicio());
-            j.setFechaFinal(cambios.getFechaFinal());
-            j.setEstado(cambios.getEstado());
-            j.setTaxista(cambios.getTaxista());
-            return ResponseEntity.ok(repo.save(j));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<JornadaDto> actualizar(@PathVariable int id,
+                                              @RequestBody JornadaDto cambiosDto) {
+        Jornada cambios = convertToEntity(cambiosDto);
+        Jornada updated = service.actualizarJornada(id, cambios);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(convertToDto(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> borrar(@PathVariable int id) {
-        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
-        repo.deleteById(id);
+        boolean deleted = service.borrarJornada(id);
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 
     /** Cierra la jornada: el front envía {"fechaFinal":"2025-05-12T20:00:00"} */
     @PostMapping("/{id}/cerrar")
-    public ResponseEntity<Jornada> cerrarJornada(
+    public ResponseEntity<JornadaDto> cerrarJornada(
             @PathVariable int id,
-            @RequestBody Jornada datos
+            @RequestBody JornadaDto datosDto
     ) {
-        return repo.findById(id).map(jornada -> {
-            jornada.setFechaFinal(datos.getFechaFinal());
-            jornada.setEstado(EstadoJornada.cerrada);
-            repo.save(jornada);
-            return ResponseEntity.ok(jornada);
-        }).orElse(ResponseEntity.notFound().build());
+        Jornada datosCierre = convertToEntity(datosDto); // Convertir DTO a entidad para el servicio
+        return service.cerrarJornada(id, datosCierre)
+                .map(this::convertToDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

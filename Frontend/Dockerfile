@@ -2,8 +2,10 @@
 FROM node:18-alpine as build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install && \
+    npm install --save-dev eslint eslint-plugin-react eslint-plugin-react-hooks @babel/eslint-parser
 COPY . .
+RUN npx eslint src/**/*.{js,jsx} --fix || true
 RUN npm run build
 
 # Etapa de producción
