@@ -51,11 +51,9 @@ public class TaxistaController {
     @PostMapping
     public ResponseEntity<TaxistaDto> crear(@RequestBody TaxistaDto taxistaDto) {
         Taxista taxista = convertToEntity(taxistaDto);
-        // Aquí deberías manejar la contraseña de forma segura (ej: encriptarla)
-        // Por simplicidad, la asignaremos desde el DTO (esto NO es seguro para producción)
-        // taxista.setContrasena(taxistaDto.getContrasena()); // El DTO no tiene contrasena
-        
-        Taxista saved = service.crearTaxista(taxista); // El servicio espera una entidad
+        // La contraseña ya se pasa desde el DTO a la entidad en convertToEntity,
+        // y el TaxistaService se encarga de codificarla.
+        Taxista saved = service.crearTaxista(taxista); 
         return ResponseEntity
                 .created(URI.create("/api/taxistas/" + saved.getIdTaxista()))
                 .body(convertToDto(saved));

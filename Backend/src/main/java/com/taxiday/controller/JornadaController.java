@@ -10,6 +10,10 @@ import com.taxiday.service.JornadaService;
 import com.taxiday.repository.TaxistaRepository; // Necesario para buscar Taxista en conversión
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.taxiday.dto.TurnoDto;
+import com.taxiday.dto.CarreraDto;
+import com.taxiday.model.Turno;
+import com.taxiday.model.Carrera;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +49,34 @@ public class JornadaController {
             taxistaDto.setEmail(jornada.getTaxista().getEmail());
             taxistaDto.setTelefono(jornada.getTaxista().getTelefono());
             jornadaDto.setTaxista(taxistaDto);
+        }
+        // Añadir turnos y carreras anidados
+        if (jornada.getTurnos() != null) {
+            List<TurnoDto> turnosDto = jornada.getTurnos().stream().map(turno -> {
+                TurnoDto turnoDto = new TurnoDto();
+                turnoDto.setIdTurno(turno.getIdTurno());
+                turnoDto.setKmInicial(turno.getKmInicial());
+                turnoDto.setKmFinal(turno.getKmFinal());
+                turnoDto.setFechaInicio(turno.getFechaInicio());
+                turnoDto.setFechaFinal(turno.getFechaFinal());
+                turnoDto.setEstado(turno.getEstado());
+                // Añadir carreras anidadas
+                if (turno.getCarreras() != null) {
+                    List<CarreraDto> carrerasDto = turno.getCarreras().stream().map(carrera -> {
+                        CarreraDto carreraDto = new CarreraDto();
+                        carreraDto.setIdCarrera(carrera.getIdCarrera());
+                        carreraDto.setFechaInicio(carrera.getFechaInicio());
+                        carreraDto.setImporteTotal(carrera.getImporteTotal());
+                        carreraDto.setImporteTaximetro(carrera.getImporteTaximetro());
+                        carreraDto.setTipoPago(carrera.getTipoPago());
+                        carreraDto.setNotas(carrera.getNotas());
+                        return carreraDto;
+                    }).toList();
+                    turnoDto.setCarreras(carrerasDto);
+                }
+                return turnoDto;
+            }).toList();
+            jornadaDto.setTurnos(turnosDto);
         }
         return jornadaDto;
     }

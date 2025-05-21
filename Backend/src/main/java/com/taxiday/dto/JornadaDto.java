@@ -11,6 +11,7 @@ public class JornadaDto {
     private LocalDateTime fechaFinal;
     private EstadoJornada estado;
     private TaxistaDto taxista; // Usar DTO para el taxista asociado
+    private java.util.List<TurnoDto> turnos;
 
     // Getters y setters añadidos explícitamente
 
@@ -52,5 +53,13 @@ public class JornadaDto {
 
     public void setTaxista(TaxistaDto taxista) {
         this.taxista = taxista;
+    }
+
+    public java.util.List<TurnoDto> getTurnos() {
+        return turnos;
+    }
+
+    public void setTurnos(java.util.List<TurnoDto> turnos) {
+        this.turnos = turnos;
     }
 } 

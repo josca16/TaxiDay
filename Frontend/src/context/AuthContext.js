@@ -7,6 +7,8 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   // Estado para almacenar la información del usuario autenticado
   const [user, setUser] = useState(null);
+  // Estado derivado para indicar si el usuario está autenticado
+  const isAuthenticated = user !== null;
 
   // Efecto para cargar la información del usuario desde localStorage al iniciar la aplicación
   useEffect(() => {
@@ -30,9 +32,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  // Proporciona el estado del usuario y las funciones de login/logout a los componentes hijos
+  // Proporciona el estado del usuario, isAuthenticated y las funciones de login/logout a los componentes hijos
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

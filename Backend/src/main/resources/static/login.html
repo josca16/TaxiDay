@@ -26,15 +26,16 @@
       const licencia = document.getElementById('licencia').value;
       const contrasena = document.getElementById('contrasena').value;
       msg.textContent = '';
-      const resp = await fetch('/auth/login', {
+      const resp = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ licencia, contrasena })
       });
       if (resp.status === 200) {
-        window.location.href = '/index.html';
+        window.location.href = '/home';
       } else {
-        msg.textContent = 'Credenciales inválidas';
+        const errorData = await resp.json();
+        msg.textContent = errorData.message || 'Credenciales inválidas';
       }
     }
   </script>

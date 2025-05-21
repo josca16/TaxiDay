@@ -31,7 +31,7 @@
         licencia: document.getElementById('licencia').value,
         contrasena: document.getElementById('contrasena').value
       };
-      const resp = await fetch('/taxistas', {
+      const resp = await fetch('/api/taxistas', {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(nuevo)

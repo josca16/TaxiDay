@@ -37,6 +37,9 @@ public class Turno {
     @JoinColumn(name = "id_jornada")
     private Jornada jornada;
 
+    @OneToMany(mappedBy = "turno", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<Carrera> carreras;
+
     public enum EstadoTurno {
         abierto,
         cerrado
@@ -98,5 +101,13 @@ public class Turno {
 
     public void setJornada(Jornada jornada) {
         this.jornada = jornada;
+    }
+
+    public java.util.List<Carrera> getCarreras() {
+        return carreras;
+    }
+
+    public void setCarreras(java.util.List<Carrera> carreras) {
+        this.carreras = carreras;
     }
 }

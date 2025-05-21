@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface TurnoRepository extends JpaRepository<Turno, Integer> {
   List<Turno> findByJornadaIdJornada(int idJornada);
+  List<Turno> findByJornadaIdJornadaAndEstado(int idJornada, Turno.EstadoTurno estado);
 }

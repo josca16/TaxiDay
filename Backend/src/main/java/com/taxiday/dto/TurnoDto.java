@@ -1,41 +1,41 @@
 package com.taxiday.dto;
 
+// import com.taxiday.model.Jornada; // No es necesario si no se incluye el objeto Jornada completo
 import com.taxiday.model.Turno.EstadoTurno;
-
 import java.time.LocalDateTime;
 
 public class TurnoDto {
-    private Integer idTurno;
-    private Double kmInicial;
-    private Double kmFinal;
+    private int idTurno;
+    private double kmInicial;
+    private double kmFinal;
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFinal;
     private EstadoTurno estado;
-    // No incluir Jornada aquí para evitar referencias circulares y simplificar
+    // private Integer idJornada; // Si necesitas asociarlo a una jornada al crear/actualizar
+    private java.util.List<CarreraDto> carreras;
 
-    // Getters y setters añadidos explícitamente
-
-    public Integer getIdTurno() {
+    // Getters y setters
+    public int getIdTurno() {
         return idTurno;
     }
 
-    public void setIdTurno(Integer idTurno) {
+    public void setIdTurno(int idTurno) {
         this.idTurno = idTurno;
     }
 
-    public Double getKmInicial() {
+    public double getKmInicial() {
         return kmInicial;
     }
 
-    public void setKmInicial(Double kmInicial) {
+    public void setKmInicial(double kmInicial) {
         this.kmInicial = kmInicial;
     }
 
-    public Double getKmFinal() {
+    public double getKmFinal() {
         return kmFinal;
     }
 
-    public void setKmFinal(Double kmFinal) {
+    public void setKmFinal(double kmFinal) {
         this.kmFinal = kmFinal;
     }
 
@@ -62,4 +62,22 @@ public class TurnoDto {
     public void setEstado(EstadoTurno estado) {
         this.estado = estado;
     }
+
+    public java.util.List<CarreraDto> getCarreras() {
+        return carreras;
+    }
+
+    public void setCarreras(java.util.List<CarreraDto> carreras) {
+        this.carreras = carreras;
+    }
+
+    /* // Si añades idJornada
+    public Integer getIdJornada() {
+        return idJornada;
+    }
+
+    public void setIdJornada(Integer idJornada) {
+        this.idJornada = idJornada;
+    }
+    */
 } 

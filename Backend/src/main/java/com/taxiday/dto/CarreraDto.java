@@ -10,6 +10,7 @@ public class CarreraDto {
     private Double importeTotal;
     private Double importeTaximetro;
     private TipoPago tipoPago;
+    private String notas;
     // No incluir Turno aquí para evitar referencias circulares y simplificar
 
     // Getters y setters añadidos explícitamente
@@ -52,5 +53,13 @@ public class CarreraDto {
 
     public void setTipoPago(TipoPago tipoPago) {
         this.tipoPago = tipoPago;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
     }
 } 

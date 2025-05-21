@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface TaxistaRepository extends JpaRepository<Taxista, Integer> {
     Taxista findByLicencia(String licencia);
+    Taxista findByLicenciaAndContrasena(String licencia, String contrasena);
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 public class CarreraServiceImpl implements CarreraService {
@@ -48,6 +49,8 @@ public class CarreraServiceImpl implements CarreraService {
 
     @Override
     public Carrera crearCarrera(Carrera carrera) {
+        // Establecer la fecha y hora actual como fecha de inicio
+        carrera.setFechaInicio(java.time.LocalDateTime.now());
         return repo.save(carrera);
     }
 

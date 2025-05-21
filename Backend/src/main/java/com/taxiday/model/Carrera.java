@@ -34,6 +34,9 @@ public class Carrera {
     @JoinColumn(name = "id_turno")
     private Turno turno;
 
+    @Column(name = "notas", length = 255)
+    private String notas;
+
     public enum TipoPago {
         efectivo,
         tarjeta,
@@ -88,5 +91,13 @@ public class Carrera {
 
     public void setTurno(Turno turno) {
         this.turno = turno;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
     }
 }

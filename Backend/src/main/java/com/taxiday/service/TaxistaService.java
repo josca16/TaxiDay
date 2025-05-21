@@ -4,7 +4,7 @@ import com.taxiday.model.Taxista;
 import java.util.List;
 
 public interface TaxistaService {
-    Taxista crearTaxista(Taxista t);
+    Taxista crearTaxista(Taxista taxista);
     List<Taxista> listarTaxistas();
     Taxista buscarPorId(int id);
     Taxista buscarPorLicencia(String licencia);

@@ -7,10 +7,11 @@ WORKDIR /app
 # Copiar configuración de Maven Wrapper y POM
 COPY .mvn .mvn
 COPY mvnw .
+COPY mvnw.cmd .
 COPY pom.xml .
 
 # Dar permisos de ejecución a Maven Wrapper
-RUN chmod +x mvnw
+RUN chmod +x mvnw && chmod +x mvnw.cmd
 
 # Descargar dependencias para acelerar compilación posterior
 RUN ./mvnw dependency:go-offline

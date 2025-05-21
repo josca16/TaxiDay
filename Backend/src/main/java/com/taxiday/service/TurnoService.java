@@ -13,4 +13,5 @@ public interface TurnoService {
     Turno actualizarTurno(int id, Turno cambios);
     boolean borrarTurno(int id);
     Optional<Turno> cerrarTurno(int id, Turno datosCierre);
+    List<Turno> findByJornadaIdAndEstado(int jornadaId, EstadoTurno estado);
 }

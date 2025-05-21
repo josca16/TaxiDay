@@ -31,6 +31,9 @@ public class Jornada {
     @JoinColumn(name = "id_taxista") // Coincidir con init.sql (snake_case)
     private Taxista taxista;
 
+    @OneToMany(mappedBy = "jornada", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<Turno> turnos;
+
     public enum EstadoJornada {
         activa,
         cerrada
@@ -71,5 +74,13 @@ public class Jornada {
 
     public void setTaxista(Taxista taxista) {
         this.taxista = taxista;
+    }
+
+    public java.util.List<Turno> getTurnos() {
+        return turnos;
+    }
+
+    public void setTurnos(java.util.List<Turno> turnos) {
+        this.turnos = turnos;
     }
 }

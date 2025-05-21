@@ -7,6 +7,7 @@ import com.taxiday.repository.TurnoRepository;
 import com.taxiday.service.TurnoService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -50,6 +51,14 @@ public class TurnoServiceImpl implements TurnoService {
 
     @Override
     public Turno crearTurno(Turno turno) {
+        // Verificar si ya existe un turno activo en la misma jornada
+        List<Turno> turnosActivos = repo.findByJornadaIdJornadaAndEstado(turno.getJornada().getIdJornada(), EstadoTurno.abierto);
+        if (!turnosActivos.isEmpty()) {
+            throw new IllegalStateException("Ya existe un turno activo en esta jornada. Debe cerrar el turno actual antes de crear uno nuevo.");
+        }
+
+        turno.setFechaInicio(LocalDateTime.now());
+        turno.setEstado(EstadoTurno.abierto);
         return repo.save(turno);
     }
 
@@ -91,5 +100,10 @@ public class TurnoServiceImpl implements TurnoService {
             turno.setEstado(EstadoTurno.cerrado);
             return repo.save(turno);
         });
+    }
+
+    @Override
+    public List<Turno> findByJornadaIdAndEstado(int jornadaId, EstadoTurno estado) {
+        return repo.findByJornadaIdJornadaAndEstado(jornadaId, estado);
     }
 } 

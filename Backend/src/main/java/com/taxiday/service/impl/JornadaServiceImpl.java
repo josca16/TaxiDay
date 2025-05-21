@@ -9,6 +9,7 @@ import com.taxiday.repository.JornadaRepository;
 import com.taxiday.service.JornadaService;
 import com.taxiday.repository.TaxistaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -60,13 +61,16 @@ public class JornadaServiceImpl implements JornadaService {
     }
 
     @Override
+    @Transactional
     public Jornada crearJornada(Jornada jornada) {
-        if (jornada.getFechaInicio() == null) {
-            jornada.setFechaInicio(LocalDateTime.now());
+        // Verificar si ya existe una jornada activa
+        List<Jornada> jornadasActivas = repo.findByEstado(EstadoJornada.activa);
+        if (!jornadasActivas.isEmpty()) {
+            throw new IllegalStateException("Ya existe una jornada activa. Debe cerrar la jornada actual antes de crear una nueva.");
         }
-        if (jornada.getEstado() == null) {
-            jornada.setEstado(EstadoJornada.activa);
-        }
+
+        jornada.setFechaInicio(LocalDateTime.now());
+        jornada.setEstado(EstadoJornada.activa);
         return repo.save(jornada);
     }
 
@@ -81,6 +85,7 @@ public class JornadaServiceImpl implements JornadaService {
     }
 
     @Override
+    @Transactional
     public Jornada actualizarJornada(int id, Jornada cambios) {
         return repo.findById(id).map(j -> {
             j.setFechaInicio(cambios.getFechaInicio());
@@ -92,6 +97,7 @@ public class JornadaServiceImpl implements JornadaService {
     }
 
     @Override
+    @Transactional
     public boolean borrarJornada(int id) {
         if (!repo.existsById(id)) return false;
         repo.deleteById(id);
@@ -99,8 +105,12 @@ public class JornadaServiceImpl implements JornadaService {
     }
 
     @Override
+    @Transactional
     public Optional<Jornada> cerrarJornada(int id, Jornada datosCierre) {
-         return repo.findById(id).map(jornada -> {
+        return repo.findById(id).map(jornada -> {
+            if (jornada.getEstado() != EstadoJornada.activa) {
+                throw new IllegalStateException("Solo se pueden cerrar jornadas activas");
+            }
             jornada.setFechaFinal(datosCierre.getFechaFinal());
             jornada.setEstado(EstadoJornada.cerrada);
             return repo.save(jornada);
