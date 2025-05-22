@@ -17,6 +17,8 @@ import java.time.LocalDateTime; // Importar LocalDateTime
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/turnos")
@@ -70,6 +72,9 @@ public class TurnoController {
         carrera.setImporteTotal(carreraDto.getImporteTotal());
         carrera.setImporteTaximetro(carreraDto.getImporteTaximetro());
         carrera.setTipoPago(carreraDto.getTipoPago());
+        carrera.setEsAeropuerto(carreraDto.getEsAeropuerto());
+        carrera.setEsEmisora(carreraDto.getEsEmisora());
+        carrera.setNotas(carreraDto.getNotas());
         // El Turno se asigna en el controlador
         return carrera;
     }
@@ -82,8 +87,28 @@ public class TurnoController {
         carreraDto.setFechaInicio(carrera.getFechaInicio());
         carreraDto.setImporteTotal(carrera.getImporteTotal());
         carreraDto.setImporteTaximetro(carrera.getImporteTaximetro());
+        carreraDto.setPropina(carrera.getPropina());
         carreraDto.setTipoPago(carrera.getTipoPago());
+        carreraDto.setEsAeropuerto(carrera.getEsAeropuerto());
+        carreraDto.setEsEmisora(carrera.getEsEmisora());
+        carreraDto.setNotas(carrera.getNotas());
         return carreraDto;
+    }
+
+    // Endpoint para obtener las carreras de un turno específico
+    @GetMapping("/{turnoId}/carreras")
+    public ResponseEntity<List<CarreraDto>> getCarrerasByTurnoId(@PathVariable int turnoId) {
+        Optional<Turno> turnoOptional = service.buscarPorId(turnoId);
+        if (!turnoOptional.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        List<Carrera> carreras = carreraService.buscarPorTurnoId(turnoId);
+        List<CarreraDto> carrerasDto = carreras.stream()
+                                             .map(this::convertToCarreraDto)
+                                             .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(carrerasDto);
     }
 
     @PostMapping("/jornada/{jornadaId}") // Añadimos jornadaId como variable de path
@@ -198,5 +223,196 @@ public class TurnoController {
                 .map(this::convertToTurnoDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Nuevo endpoint para actualizar las notas de un turno
+    @PutMapping("/{turnoId}/notas")
+    public ResponseEntity<?> actualizarNotas(@PathVariable int turnoId, @RequestBody Map<String, String> requestBody) {
+        String notas = requestBody.get("notas");
+        
+        if (notas == null) {
+            return ResponseEntity.badRequest().body("El campo 'notas' es requerido");
+        }
+        
+        try {
+            Optional<Turno> turnoOpt = service.buscarPorId(turnoId);
+            
+            if (!turnoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Turno turno = turnoOpt.get();
+            // Solo actualizamos el campo notas, conservando todos los demás valores
+            turno.setNotas(notas);
+            
+            // Llamamos a un método específico para actualizar solo las notas
+            service.actualizarNotasTurno(turnoId, notas);
+            
+            // Para evitar confusiones en el frontend, creamos un DTO que solo tiene el campo de notas actualizado
+            Map<String, Object> response = new HashMap<>();
+            response.put("idTurno", turnoId);
+            response.put("notas", notas);
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al actualizar las notas: " + e.getMessage());
+        }
+    }
+
+    // Endpoint para pausar un turno
+    @PostMapping("/{turnoId}/pausar")
+    public ResponseEntity<?> pausarTurno(@PathVariable int turnoId) {
+        try {
+            Optional<Turno> turnoOpt = service.buscarPorId(turnoId);
+            
+            if (!turnoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Turno turno = turnoOpt.get();
+            
+            // Verificar si el turno ya está en pausa o cerrado
+            if (turno.getEstado() == EstadoTurno.cerrado) {
+                return ResponseEntity.badRequest().body("No se puede pausar un turno cerrado");
+            }
+            
+            if (turno.getEstadoPausa() == Turno.EstadoPausa.pausado) {
+                return ResponseEntity.badRequest().body("El turno ya está en pausa");
+            }
+            
+            // Actualizar estado y tiempo de inicio de pausa
+            turno.setEstadoPausa(Turno.EstadoPausa.pausado);
+            turno.setInicioUltimaPausa(LocalDateTime.now());
+            
+            // Guardar cambios
+            Turno updated = service.actualizarTurno(turnoId, turno);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("idTurno", updated.getIdTurno());
+            response.put("estadoPausa", updated.getEstadoPausa().toString());
+            response.put("inicioUltimaPausa", updated.getInicioUltimaPausa());
+            response.put("tiempoPausadoSegundos", updated.getTiempoPausadoSegundos());
+            response.put("mensaje", "Turno pausado correctamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al pausar el turno: " + e.getMessage());
+        }
+    }
+    
+    // Endpoint para reanudar un turno pausado
+    @PostMapping("/{turnoId}/reanudar")
+    public ResponseEntity<?> reanudarTurno(@PathVariable int turnoId) {
+        try {
+            Optional<Turno> turnoOpt = service.buscarPorId(turnoId);
+            
+            if (!turnoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Turno turno = turnoOpt.get();
+            
+            // Verificar si el turno está cerrado o no está en pausa
+            if (turno.getEstado() == EstadoTurno.cerrado) {
+                return ResponseEntity.badRequest().body("No se puede reanudar un turno cerrado");
+            }
+            
+            if (turno.getEstadoPausa() != Turno.EstadoPausa.pausado) {
+                return ResponseEntity.badRequest().body("El turno no está en pausa");
+            }
+            
+            // Calcular el tiempo que ha estado en pausa
+            LocalDateTime ahora = LocalDateTime.now();
+            LocalDateTime inicioPausa = turno.getInicioUltimaPausa();
+            
+            if (inicioPausa != null) {
+                // Calcular segundos entre inicio de pausa y ahora
+                long segundosPausados = java.time.Duration.between(inicioPausa, ahora).getSeconds();
+                
+                // Añadir al tiempo total pausado
+                long tiempoPausadoTotal = turno.getTiempoPausadoSegundos() != null ? 
+                                          turno.getTiempoPausadoSegundos() + segundosPausados : 
+                                          segundosPausados;
+                
+                turno.setTiempoPausadoSegundos(tiempoPausadoTotal);
+            }
+            
+            // Actualizar estado
+            turno.setEstadoPausa(Turno.EstadoPausa.activo);
+            turno.setInicioUltimaPausa(null);
+            
+            // Guardar cambios
+            Turno updated = service.actualizarTurno(turnoId, turno);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("idTurno", updated.getIdTurno());
+            response.put("estadoPausa", updated.getEstadoPausa().toString());
+            response.put("tiempoPausadoSegundos", updated.getTiempoPausadoSegundos());
+            response.put("mensaje", "Turno reanudado correctamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al reanudar el turno: " + e.getMessage());
+        }
+    }
+    
+    // Endpoint para obtener estadísticas de tiempo de un turno
+    @GetMapping("/{turnoId}/estadisticas")
+    public ResponseEntity<?> obtenerEstadisticasTiempo(@PathVariable int turnoId) {
+        try {
+            Optional<Turno> turnoOpt = service.buscarPorId(turnoId);
+            
+            if (!turnoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Turno turno = turnoOpt.get();
+            Map<String, Object> estadisticas = new HashMap<>();
+            
+            // Tiempo total desde inicio (incluyendo pausas)
+            LocalDateTime inicio = turno.getFechaInicio();
+            LocalDateTime fin = turno.getFechaFinal() != null ? turno.getFechaFinal() : LocalDateTime.now();
+            long segundosTotales = java.time.Duration.between(inicio, fin).getSeconds();
+            
+            // Tiempo pausado
+            long segundosPausados = turno.getTiempoPausadoSegundos() != null ? turno.getTiempoPausadoSegundos() : 0L;
+            
+            // Si está actualmente en pausa, añadir el tiempo actual de pausa
+            if (turno.getEstadoPausa() == Turno.EstadoPausa.pausado && turno.getInicioUltimaPausa() != null) {
+                segundosPausados += java.time.Duration.between(turno.getInicioUltimaPausa(), LocalDateTime.now()).getSeconds();
+            }
+            
+            // Tiempo efectivo de trabajo
+            long segundosTrabajados = segundosTotales - segundosPausados;
+            
+            // Convertir segundos a formato hh:mm:ss
+            estadisticas.put("tiempoTotal", formatearTiempo(segundosTotales));
+            estadisticas.put("tiempoPausado", formatearTiempo(segundosPausados));
+            estadisticas.put("tiempoTrabajado", formatearTiempo(segundosTrabajados));
+            
+            // También incluir los valores en segundos
+            estadisticas.put("segundosTotales", segundosTotales);
+            estadisticas.put("segundosPausados", segundosPausados);
+            estadisticas.put("segundosTrabajados", segundosTrabajados);
+            
+            estadisticas.put("estadoPausa", turno.getEstadoPausa().toString());
+            
+            return ResponseEntity.ok(estadisticas);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al obtener estadísticas: " + e.getMessage());
+        }
+    }
+    
+    // Método auxiliar para formatear tiempo en segundos a formato hh:mm:ss
+    private String formatearTiempo(long segundos) {
+        long horas = segundos / 3600;
+        long minutos = (segundos % 3600) / 60;
+        long segs = segundos % 60;
+        
+        return String.format("%02d:%02d:%02d", horas, minutos, segs);
     }
 }

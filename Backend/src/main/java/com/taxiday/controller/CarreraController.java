@@ -8,8 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/carreras")
@@ -29,7 +31,11 @@ public class CarreraController {
         carreraDto.setFechaInicio(carrera.getFechaInicio());
         carreraDto.setImporteTotal(carrera.getImporteTotal());
         carreraDto.setImporteTaximetro(carrera.getImporteTaximetro());
+        carreraDto.setPropina(carrera.getPropina());
         carreraDto.setTipoPago(carrera.getTipoPago());
+        carreraDto.setEsAeropuerto(carrera.getEsAeropuerto());
+        carreraDto.setEsEmisora(carrera.getEsEmisora());
+        carreraDto.setNotas(carrera.getNotas());
         // No incluimos Turno en el DTO de Carrera
         return carreraDto;
     }
@@ -43,7 +49,10 @@ public class CarreraController {
          carrera.setImporteTotal(carreraDto.getImporteTotal());
          carrera.setImporteTaximetro(carreraDto.getImporteTaximetro());
          carrera.setTipoPago(carreraDto.getTipoPago());
-          // El Turno asociado debería manejarse al crear/actualizar la Carrera
+         carrera.setEsAeropuerto(carreraDto.getEsAeropuerto());
+         carrera.setEsEmisora(carreraDto.getEsEmisora());
+         carrera.setNotas(carreraDto.getNotas());
+         // El Turno asociado debería manejarse al crear/actualizar la Carrera
          return carrera;
     }
 
@@ -86,6 +95,9 @@ public class CarreraController {
         existingCarrera.setImporteTotal(cambiosDto.getImporteTotal());
         existingCarrera.setImporteTaximetro(cambiosDto.getImporteTaximetro());
         existingCarrera.setTipoPago(cambiosDto.getTipoPago());
+        existingCarrera.setEsAeropuerto(cambiosDto.getEsAeropuerto());
+        existingCarrera.setEsEmisora(cambiosDto.getEsEmisora());
+        existingCarrera.setNotas(cambiosDto.getNotas());
         // El Turno asociado no se actualiza desde el DTO aquí
         
         Carrera updated = service.actualizarCarrera(id, existingCarrera); // Pasar la entidad actualizada al servicio
@@ -103,5 +115,39 @@ public class CarreraController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.noContent().build();
+    }
+
+    // Añadir endpoint para actualizar solo las notas de una carrera
+    @PutMapping("/{id}/notas")
+    public ResponseEntity<?> actualizarNotas(@PathVariable int id, @RequestBody Map<String, String> requestBody) {
+        String notas = requestBody.get("notas");
+        
+        if (notas == null) {
+            return ResponseEntity.badRequest().body("El campo 'notas' es requerido");
+        }
+        
+        try {
+            Optional<Carrera> carreraOpt = service.buscarPorId(id);
+            
+            if (!carreraOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Carrera carrera = carreraOpt.get();
+            // Solo actualizamos el campo notas
+            carrera.setNotas(notas);
+            
+            Carrera carreraActualizada = service.actualizarCarrera(id, carrera);
+            
+            // Para evitar confusiones en el frontend
+            Map<String, Object> response = new HashMap<>();
+            response.put("idCarrera", id);
+            response.put("notas", notas);
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al actualizar las notas: " + e.getMessage());
+        }
     }
 }

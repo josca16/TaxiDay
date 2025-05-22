@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "turno")
@@ -30,8 +32,21 @@ public class Turno {
     private LocalDateTime fechaFinal;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 7)
+    @Column(length = 8)
     private EstadoTurno estado = EstadoTurno.abierto;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10, name = "estado_pausa")
+    private EstadoPausa estadoPausa = EstadoPausa.activo;
+    
+    @Column(name = "inicio_ultima_pausa", columnDefinition = "DATETIME")
+    private LocalDateTime inicioUltimaPausa;
+    
+    @Column(name = "tiempo_pausado_segundos")
+    private Long tiempoPausadoSegundos = 0L;
+
+    @Column(name = "notas", columnDefinition = "TEXT")
+    private String notas;
 
     @ManyToOne
     @JoinColumn(name = "id_jornada")
@@ -43,6 +58,11 @@ public class Turno {
     public enum EstadoTurno {
         abierto,
         cerrado
+    }
+    
+    public enum EstadoPausa {
+        activo,
+        pausado
     }
 
     // Getters y setters añadidos explícitamente para compatibilidad
@@ -93,6 +113,38 @@ public class Turno {
 
     public void setEstado(EstadoTurno estado) {
         this.estado = estado;
+    }
+    
+    public EstadoPausa getEstadoPausa() {
+        return estadoPausa;
+    }
+
+    public void setEstadoPausa(EstadoPausa estadoPausa) {
+        this.estadoPausa = estadoPausa;
+    }
+    
+    public LocalDateTime getInicioUltimaPausa() {
+        return inicioUltimaPausa;
+    }
+
+    public void setInicioUltimaPausa(LocalDateTime inicioUltimaPausa) {
+        this.inicioUltimaPausa = inicioUltimaPausa;
+    }
+    
+    public Long getTiempoPausadoSegundos() {
+        return tiempoPausadoSegundos;
+    }
+
+    public void setTiempoPausadoSegundos(Long tiempoPausadoSegundos) {
+        this.tiempoPausadoSegundos = tiempoPausadoSegundos;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
     }
 
     public Jornada getJornada() {

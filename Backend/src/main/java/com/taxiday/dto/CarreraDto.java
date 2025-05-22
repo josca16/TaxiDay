@@ -9,7 +9,10 @@ public class CarreraDto {
     private LocalDateTime fechaInicio;
     private Double importeTotal;
     private Double importeTaximetro;
+    private Double propina;
     private TipoPago tipoPago;
+    private Boolean esAeropuerto;
+    private Boolean esEmisora;
     private String notas;
     // No incluir Turno aquí para evitar referencias circulares y simplificar
 
@@ -46,6 +49,14 @@ public class CarreraDto {
     public void setImporteTaximetro(Double importeTaximetro) {
         this.importeTaximetro = importeTaximetro;
     }
+    
+    public Double getPropina() {
+        return propina;
+    }
+    
+    public void setPropina(Double propina) {
+        this.propina = propina;
+    }
 
     public TipoPago getTipoPago() {
         return tipoPago;
@@ -53,6 +64,22 @@ public class CarreraDto {
 
     public void setTipoPago(TipoPago tipoPago) {
         this.tipoPago = tipoPago;
+    }
+    
+    public Boolean getEsAeropuerto() {
+        return esAeropuerto;
+    }
+    
+    public void setEsAeropuerto(Boolean esAeropuerto) {
+        this.esAeropuerto = esAeropuerto;
+    }
+    
+    public Boolean getEsEmisora() {
+        return esEmisora;
+    }
+    
+    public void setEsEmisora(Boolean esEmisora) {
+        this.esEmisora = esEmisora;
     }
 
     public String getNotas() {

@@ -171,118 +171,125 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center p-4">
-      <div className="w-full max-w-3xl bg-slate-800/90 rounded-2xl shadow-2xl p-8 border border-slate-700/60 mt-8">
-        <header className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-amber-400">TaxiDay</h1>
-              <p className="text-slate-400 text-sm">Bienvenido, <span className="text-amber-300 font-semibold">{user?.nombre || user?.licencia}</span>!</p>
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
+      <main className="flex-1 flex items-center justify-center w-full">
+        <div className="w-full max-w-5xl mx-auto px-2 md:px-8 py-8">
+          <header className="mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-amber-400">TaxiDay</h1>
+                <p className="text-slate-400 text-sm">Bienvenido, <span className="text-amber-300 font-semibold">{user?.nombre || user?.licencia}</span>!</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600/80 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold shadow-md"
+              >
+                Cerrar Sesión
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600/80 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold shadow-md"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
-        </header>
+          </header>
 
-        {error && (
-          <div className="bg-red-800/40 border border-red-700/50 text-red-200 px-4 py-3 rounded-lg text-sm mb-6 shadow-md">
-            <p className="font-semibold">Error:</p>
-            <p className="text-xs">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="bg-red-800/40 border border-red-700/50 text-red-200 px-4 py-3 rounded-lg text-sm mb-6 shadow-md">
+              <p className="font-semibold">Error:</p>
+              <p className="text-xs">{error}</p>
+            </div>
+          )}
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/60 shadow-lg flex flex-col justify-between">
-            {!activeJornada ? (
-              <>
-                <h3 className="text-xl font-semibold text-amber-300 mb-3">Nueva Jornada</h3>
-                <p className="text-sm text-slate-400 mb-4">No tienes una jornada de trabajo activa.</p>
-                <button
-                  onClick={handleNuevaJornada}
-                  disabled={loadingJornadas || loadingTurno}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 py-2.5 px-4 rounded-lg transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {loadingJornadas ? 'Procesando...' : 'Iniciar Nueva Jornada'}
-                </button>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-semibold text-green-400 mb-3">Jornada Activa</h3>
-                <p className="text-sm text-slate-400">ID Jornada: <span className="font-medium text-slate-100">{activeJornada.idJornada}</span></p>
-                <p className="text-sm text-slate-400 mb-4">Iniciada: <span className="font-medium text-slate-100">{new Date(activeJornada.fechaInicio).toLocaleString()}</span></p>
-                {!turnoActivo && !showCrearTurnoForm && (
+          <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-8 items-start">
+            <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/60 shadow-lg flex flex-col w-full md:w-[320px] max-w-full">
+              {!activeJornada ? (
+                <>
+                  <h3 className="text-xl font-semibold text-amber-300 mb-3">Nueva Jornada</h3>
+                  <p className="text-sm text-slate-400 mb-4">No tienes una jornada de trabajo activa.</p>
                   <button
-                    onClick={() => setShowCrearTurnoForm(true)}
-                    disabled={loadingTurno}
-                    className="w-full mt-3 bg-sky-500 hover:bg-sky-600 text-white py-2.5 px-4 rounded-lg transition-colors font-semibold disabled:opacity-60 shadow-sm"
+                    onClick={handleNuevaJornada}
+                    disabled={loadingJornadas || loadingTurno}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 py-2.5 px-4 rounded-lg transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                   >
-                    Iniciar Nuevo Turno
+                    {loadingJornadas ? 'Procesando...' : 'Iniciar Nueva Jornada'}
                   </button>
-                )}
-                {showCrearTurnoForm && (
-                  <form onSubmit={handleCrearTurno} className="space-y-4 mt-4 p-4 bg-slate-800/80 rounded-lg border border-slate-700/50">
-                    <div>
-                      <label htmlFor="kmInicial" className="block text-xs font-medium text-slate-200 mb-1.5">KM Inicial del Turno</label>
-                      <input
-                        type="number"
-                        id="kmInicial"
-                        value={turnoFormData.kmInicial}
-                        onChange={(e) => setTurnoFormData({ ...turnoFormData, kmInicial: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 text-slate-100 placeholder-slate-500 text-sm shadow-sm"
-                        placeholder="Ej: 123450"
-                        required
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowCrearTurnoForm(false)}
-                        className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 px-3 rounded-lg transition-colors text-sm font-medium shadow-sm"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={loadingTurno}
-                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg transition-colors font-semibold disabled:opacity-60 shadow-sm"
-                      >
-                        {loadingTurno ? 'Guardando...' : 'Guardar Turno'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-                {turnoActivo && (
-                  <div className="mt-4 pt-4 border-t border-slate-700/50">
-                    <h4 className="text-lg font-semibold text-sky-400 mb-2">Turno Activo</h4>
-                    <p className="text-sm text-slate-400">ID Turno: <span className="font-medium text-slate-100">{turnoActivo.idTurno}</span></p>
-                    <p className="text-sm text-slate-400">KM Inicial: <span className="font-medium text-slate-100">{turnoActivo.kmInicial}</span></p>
-                    <p className="text-sm text-slate-400 mb-3">Iniciado: <span className="font-medium text-slate-100">{new Date(turnoActivo.fechaInicio).toLocaleString()}</span></p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-semibold text-green-400 mb-3">Jornada Activa</h3>
+                  <p className="text-sm text-slate-400">ID Jornada: <span className="font-medium text-slate-100">{activeJornada.idJornada}</span></p>
+                  <p className="text-sm text-slate-400 mb-4">Iniciada: <span className="font-medium text-slate-100">{new Date(activeJornada.fechaInicio).toLocaleString()}</span></p>
+                  {!turnoActivo && !showCrearTurnoForm && (
                     <button
-                      onClick={() => navigate(`/jornada/${activeJornada.idJornada}/turno/${turnoActivo.idTurno}/carrera`)}
-                      className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2.5 px-4 rounded-lg transition-colors font-semibold shadow-sm"
+                      onClick={() => setShowCrearTurnoForm(true)}
+                      disabled={loadingTurno}
+                      className="w-full mt-3 bg-sky-500 hover:bg-sky-600 text-white py-2.5 px-4 rounded-lg transition-colors font-semibold disabled:opacity-60 shadow-sm"
                     >
-                      Gestionar Carreras
+                      Iniciar Nuevo Turno
                     </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/60 shadow-lg flex flex-col justify-between">
-            <h3 className="text-xl font-semibold text-amber-300 mb-3">Estadísticas</h3>
-            <div className="space-y-2 text-sm">
-              <p className="text-slate-400">Jornadas Totales: <span className="font-semibold text-amber-200">{stats.totalJornadas}</span></p>
-              <p className="text-slate-400">Carreras Totales: <span className="font-semibold text-amber-200">{stats.totalCarreras}</span></p>
-              <p className="text-slate-400">Recaudado Total: <span className="font-semibold text-amber-200">{stats.totalRecaudado.toFixed(2)} €</span></p>
+                  )}
+                  {showCrearTurnoForm && (
+                    <form onSubmit={handleCrearTurno} className="space-y-4 mt-4 p-4 bg-slate-800/80 rounded-lg border border-slate-700/50">
+                      <div>
+                        <label htmlFor="kmInicial" className="block text-xs font-medium text-slate-200 mb-1.5">KM Inicial del Turno</label>
+                        <input
+                          type="number"
+                          id="kmInicial"
+                          value={turnoFormData.kmInicial}
+                          onChange={(e) => setTurnoFormData({ ...turnoFormData, kmInicial: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 text-slate-100 placeholder-slate-500 text-sm shadow-sm"
+                          placeholder="Ej: 123450"
+                          required
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowCrearTurnoForm(false)}
+                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 px-3 rounded-lg transition-colors text-sm font-medium shadow-sm"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loadingTurno}
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg transition-colors font-semibold disabled:opacity-60 shadow-sm"
+                        >
+                          {loadingTurno ? 'Guardando...' : 'Guardar Turno'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                  {turnoActivo && (
+                    <div className="mt-4 pt-4 border-t border-slate-700/50">
+                      <h4 className="text-lg font-semibold text-sky-400 mb-2">Turno Activo</h4>
+                      <p className="text-sm text-slate-400">ID Turno: <span className="font-medium text-slate-100">{turnoActivo.idTurno}</span></p>
+                      <p className="text-sm text-slate-400">KM Inicial: <span className="font-medium text-slate-100">{turnoActivo.kmInicial}</span></p>
+                      <p className="text-sm text-slate-400 mb-3">Iniciado: <span className="font-medium text-slate-100">{new Date(turnoActivo.fechaInicio).toLocaleString()}</span></p>
+                      <button
+                        onClick={() => navigate(`/jornada/${activeJornada.idJornada}/turno/${turnoActivo.idTurno}/carrera`)}
+                        className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2.5 px-4 rounded-lg transition-colors font-semibold shadow-sm"
+                      >
+                        Gestionar Carreras
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <p className="text-xs text-slate-500 mt-4 italic">Funcionalidad de estadísticas en desarrollo.</p>
+            <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto">
+              <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700/60 shadow-lg flex flex-col">
+                <h3 className="text-xl font-semibold text-amber-300 mb-3">Estadísticas</h3>
+                <div className="space-y-2 text-sm">
+                  <p className="text-slate-400">Jornadas Totales: <span className="font-semibold text-amber-200">{stats.totalJornadas}</span></p>
+                  <p className="text-slate-400">Carreras Totales: <span className="font-semibold text-amber-200">{stats.totalCarreras}</span></p>
+                  <p className="text-slate-400">Recaudado Total: <span className="font-semibold text-amber-200">{stats.totalRecaudado.toFixed(2)} €</span></p>
+                </div>
+                <p className="text-xs text-slate-500 mt-4 italic">Funcionalidad de estadísticas en desarrollo.</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+      <footer className="w-full text-center text-xs text-slate-500 py-4 border-t border-slate-800 mt-auto">
+        TaxiDay © 2025 — Hecho con <span className="text-red-500">♥</span> para taxistas
+      </footer>
     </div>
   );
 } 

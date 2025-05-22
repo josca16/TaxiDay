@@ -82,4 +82,9 @@ public class CarreraServiceImpl implements CarreraService {
         repo.deleteById(id);
         return true;
     }
+    
+    @Override
+    public List<Carrera> buscarPorTurnoId(int turnoId) {
+        return repo.findByTurnoIdTurno(turnoId);
+    }
 } 

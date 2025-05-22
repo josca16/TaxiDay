@@ -6,6 +6,8 @@ import RegisterPage from './pages/RegisterPage';
 import Home from './pages/Home';
 import CarreraPage from './pages/CarreraPage';
 import { useAuth } from './context/AuthContext';
+import AuthPage from './pages/AuthPage';
+import './App.css';
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }) {
@@ -13,33 +15,12 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/" />;
 }
 
-// Componente principal de autenticación
-function AuthPage() {
-  const [showRegister, setShowRegister] = useState(false);
-  const { isAuthenticated } = useAuth();
-
-  if (isAuthenticated) {
-    return <Navigate to="/home" />;
-  }
-
-  return showRegister ? (
-    <RegisterPage 
-      onSuccessfulRegister={() => setShowRegister(false)}
-      onCancel={() => setShowRegister(false)}
-    />
-  ) : (
-    <LoginPage 
-      onSuccessfulLogin={() => {}}
-      onRegisterClick={() => setShowRegister(true)}
-    />
-  );
-}
-
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen w-full bg-gray-950 text-gray-300">
+        <div className="min-h-screen w-full bg-background text-text font-sans selection:bg-primary/30 selection:text-white">
+          <div className="fixed inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none"></div>
           <Routes>
             <Route path="/" element={<AuthPage />} />
             <Route 
@@ -56,7 +37,7 @@ function App() {
                 <ProtectedRoute>
                   <CarreraPage />
                 </ProtectedRoute>
-              } 
+              }
             />
           </Routes>
         </div>

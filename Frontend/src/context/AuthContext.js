@@ -14,7 +14,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const userObj = JSON.parse(storedUser);
+      // Si el usuario guardado no es válido, límpialo
+      if (!userObj || !userObj.idTaxista) {
+        localStorage.removeItem('user');
+        setUser(null);
+      } else {
+        setUser(userObj);
+      }
     }
   }, []); // El array vacío asegura que este efecto solo se ejecute una vez al montar el componente
 

@@ -81,6 +81,9 @@ public class TurnoServiceImpl implements TurnoService {
             t.setFechaFinal(cambios.getFechaFinal());
             t.setEstado(cambios.getEstado());
             t.setJornada(cambios.getJornada());
+            if (cambios.getNotas() != null) {
+                t.setNotas(cambios.getNotas());
+            }
             return repo.save(t);
         }).orElse(null);
     }
@@ -105,5 +108,16 @@ public class TurnoServiceImpl implements TurnoService {
     @Override
     public List<Turno> findByJornadaIdAndEstado(int jornadaId, EstadoTurno estado) {
         return repo.findByJornadaIdJornadaAndEstado(jornadaId, estado);
+    }
+
+    /**
+     * Actualiza únicamente las notas de un turno sin modificar los demás campos
+     */
+    @Override
+    public Turno actualizarNotasTurno(int id, String notas) {
+        return repo.findById(id).map(t -> {
+            t.setNotas(notas);
+            return repo.save(t);
+        }).orElse(null);
     }
 } 

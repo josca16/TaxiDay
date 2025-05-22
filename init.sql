@@ -33,6 +33,10 @@ CREATE TABLE turno (
     fecha_inicio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_final DATETIME NULL,
     estado ENUM('abierto','cerrado') DEFAULT 'abierto',
+    notas TEXT,
+    tiempo_pausado_segundos BIGINT DEFAULT 0,
+    estado_pausa ENUM('activo', 'pausado') DEFAULT 'activo',
+    inicio_ultima_pausa DATETIME NULL,
     id_jornada INT,
     FOREIGN KEY (id_jornada) REFERENCES jornada(id_jornada)
 );
@@ -45,7 +49,11 @@ CREATE TABLE carrera (
     fecha_inicio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     importe_total DOUBLE NOT NULL,
     importe_taximetro DOUBLE DEFAULT 0,
-    tipo_pago ENUM('efectivo','tarjeta','bizum') DEFAULT 'efectivo',
+    propina DOUBLE AS (importe_total - importe_taximetro) STORED,
+    tipo_pago ENUM('efectivo','tarjeta','otro') DEFAULT 'efectivo',
+    es_aeropuerto BOOLEAN DEFAULT FALSE,
+    es_emisora BOOLEAN DEFAULT FALSE,
+    notas TEXT,
     id_turno INT,
     FOREIGN KEY (id_turno) REFERENCES turno(id_turno)
 );

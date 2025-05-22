@@ -11,4 +11,5 @@ public interface CarreraService {
     Optional<Carrera> buscarPorId(int id);
     Carrera actualizarCarrera(int id, Carrera cambios);
     boolean borrarCarrera(int id);
+    List<Carrera> buscarPorTurnoId(int turnoId);
 }

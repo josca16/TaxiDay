@@ -14,4 +14,12 @@ public interface TurnoService {
     boolean borrarTurno(int id);
     Optional<Turno> cerrarTurno(int id, Turno datosCierre);
     List<Turno> findByJornadaIdAndEstado(int jornadaId, EstadoTurno estado);
+    
+    /**
+     * Actualiza únicamente las notas de un turno sin modificar los demás campos
+     * @param id El ID del turno a actualizar
+     * @param notas El nuevo texto de las notas
+     * @return El turno actualizado o null si no existe
+     */
+    Turno actualizarNotasTurno(int id, String notas);
 }

@@ -25,10 +25,19 @@ public class Carrera {
 
     @Column(name = "importe_taximetro", columnDefinition = "DOUBLE DEFAULT 0")
     private Double importeTaximetro;
+    
+    @Column(name = "propina", insertable = false, updatable = false)
+    private Double propina;
 
-    @Column(name = "tipo_pago", length = 7)
+    @Column(name = "tipo_pago", length = 10)
     @Enumerated(EnumType.STRING)
     private TipoPago tipoPago = TipoPago.efectivo;
+    
+    @Column(name = "es_aeropuerto")
+    private Boolean esAeropuerto = false;
+    
+    @Column(name = "es_emisora")
+    private Boolean esEmisora = false;
 
     @ManyToOne
     @JoinColumn(name = "id_turno")
@@ -40,7 +49,7 @@ public class Carrera {
     public enum TipoPago {
         efectivo,
         tarjeta,
-        bizum
+        otro
     }
 
     // Getters y setters añadidos explícitamente para compatibilidad
@@ -76,6 +85,10 @@ public class Carrera {
     public void setImporteTaximetro(Double importeTaximetro) {
         this.importeTaximetro = importeTaximetro;
     }
+    
+    public Double getPropina() {
+        return propina;
+    }
 
     public TipoPago getTipoPago() {
         return tipoPago;
@@ -83,6 +96,22 @@ public class Carrera {
 
     public void setTipoPago(TipoPago tipoPago) {
         this.tipoPago = tipoPago;
+    }
+    
+    public Boolean getEsAeropuerto() {
+        return esAeropuerto;
+    }
+    
+    public void setEsAeropuerto(Boolean esAeropuerto) {
+        this.esAeropuerto = esAeropuerto;
+    }
+    
+    public Boolean getEsEmisora() {
+        return esEmisora;
+    }
+    
+    public void setEsEmisora(Boolean esEmisora) {
+        this.esEmisora = esEmisora;
     }
 
     public Turno getTurno() {

@@ -55,11 +55,34 @@ export default function Home() {
   // Estado para el día seleccionado en el calendario
   const [selectedDate, setSelectedDate] = useState(null);
 
+  // Añadir estado para mes actual
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [monthlyStats, setMonthlyStats] = useState({
+    totalJornadas: 0,
+    totalCarreras: 0,
+    totalRecaudado: 0
+  });
+
+  // Añadir un estado para controlar la animación de destaque
+  const [highlightTurnoForm, setHighlightTurnoForm] = useState(false);
+
+  // Add state for modal
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
+  const [selectedTurnoId, setSelectedTurnoId] = useState(null);
+  const [selectedJornadaId, setSelectedJornadaId] = useState(null);
+
   // Iconos para estadísticas
   const icons = [
-    <svg key="jornadas" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>,
-    <svg key="carreras" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /></svg>,
-    <svg key="recaudado" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 8v8m0 0a4 4 0 100-8 4 4 0 000 8z" /></svg>
+    <svg key="jornadas" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>,
+    <svg key="carreras" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+    </svg>,
+    <svg key="recaudado" className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   ];
 
   // Efecto para cargar las jornadas al montar el componente
@@ -73,6 +96,7 @@ export default function Home() {
       }
 
       try {
+        console.log("Obteniendo jornadas para el taxista:", user.idTaxista);
         // Realiza la petición GET al backend para obtener TODAS las jornadas (temporal)
         // IDEALMENTE: Se debería usar un endpoint específico como '/api/taxistas/' + user.idTaxista + '/jornadas'
         const resp = await fetch('/api/jornadas');
@@ -82,22 +106,37 @@ export default function Home() {
         }
         
         const data = await resp.json();
+        console.log("Datos recibidos del servidor:", data);
         
         // Filtrar las jornadas para mostrar solo las del taxista actual
         const userJornadas = data.filter(jornada => jornada.taxista?.idTaxista === user.idTaxista);
         
+        // Ordenar las jornadas por fecha (más recientes primero)
+        userJornadas.sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
+        
+        console.log('Jornadas del usuario:', userJornadas);
         setJornadas(userJornadas); // Almacena las jornadas filtradas en el estado
-        console.log('Jornadas cargadas y filtradas:', userJornadas); // Log de depuración
 
         // Calcular estadísticas
-        const totalCarreras = userJornadas.reduce((sum, j) => 
-          sum + (j.turnos?.reduce((tSum, t) => 
-            tSum + (t.carreras?.length || 0), 0) || 0), 0);
+        const totalCarreras = userJornadas.reduce((sum, j) => {
+          const turnosCarreras = j.turnos?.reduce((tSum, t) => {
+            const carrerasCount = Array.isArray(t.carreras) ? t.carreras.length : 0;
+            console.log(`Turno ${t.idTurno} tiene ${carrerasCount} carreras`);
+            return tSum + carrerasCount;
+          }, 0) || 0;
+          return sum + turnosCarreras;
+        }, 0);
         
-        const totalRecaudado = userJornadas.reduce((sum, j) => 
-          sum + (j.turnos?.reduce((tSum, t) => 
-            tSum + (t.carreras?.reduce((cSum, c) => 
-              cSum + (c.importeTotal || 0), 0) || 0), 0) || 0), 0);
+        const totalRecaudado = userJornadas.reduce((sum, j) => {
+          const turnosRecaudado = j.turnos?.reduce((tSum, t) => {
+            const carrerasRecaudo = t.carreras?.reduce((cSum, c) => {
+              const importe = parseFloat(c.importeTotal) || 0;
+              return cSum + importe;
+            }, 0) || 0;
+            return tSum + carrerasRecaudo;
+          }, 0) || 0;
+          return sum + turnosRecaudado;
+        }, 0);
 
         setStats({
           totalJornadas: userJornadas.length,
@@ -110,15 +149,21 @@ export default function Home() {
           const estado = jornada.estado?.toLowerCase();
           return estado === 'activa' || estado === 'creada' || estado === 'abierta';
         });
+        
         if (openJornada) {
+          console.log('Jornada activa encontrada:', openJornada);
           setActiveJornadaId(openJornada.idJornada);
-          console.log('Jornada activa encontrada:', openJornada.idJornada);
           fetchTurnoActivo(openJornada.idJornada);
+        } else {
+          console.log('No se encontró ninguna jornada activa');
+          // Limpiar cualquier jornada activa guardada previamente
+          setActiveJornadaId(null);
+          setTurno(null);
         }
 
       } catch (err) {
         setError(err.message); // Captura y almacena cualquier error
-        console.error('Error fetching jornadas:', err); // Log de error
+        console.error('Error al cargar jornadas:', err); // Log de error
       } finally {
         setLoading(false); // Indica que la carga ha terminado (éxito o error)
       }
@@ -129,12 +174,40 @@ export default function Home() {
 
   const fetchTurnoActivo = async (jornadaId) => {
     try {
+      console.log(`Buscando turno activo para la jornada ${jornadaId}`);
       const resp = await fetch(`/api/jornadas/${jornadaId}/turno-activo`);
-      if (!resp.ok) throw new Error('Error al cargar turno activo');
+      
+      if (!resp.ok) {
+        const errorData = await resp.text();
+        console.error("Error en respuesta del servidor:", errorData);
+        // No vamos a lanzar error aquí, simplemente asumir que no hay turno activo
+        console.log("Asumiendo que no hay turno activo para esta jornada");
+        setTurno(null);
+        return;
+      }
+      
       const data = await resp.json();
+      console.log("Turno activo recibido:", data);
+      
+      // Verificar si es un turno válido
+      if (!data || !data.idTurno) {
+        console.log("No se encontró un turno activo válido");
+        setTurno(null);
+        return;
+      }
+      
+      // Verificar explícitamente si existen carreras y garantizar que sea un array
+      if (!data.carreras) {
+        data.carreras = [];
+      } else if (!Array.isArray(data.carreras)) {
+        data.carreras = [data.carreras];
+      }
+      
       setTurno(data);
     } catch (err) {
-      setError(err.message);
+      console.error("Error al obtener turno activo:", err);
+      setError("Error al cargar turno activo. Puede continuar trabajando.");
+      setTurno(null);
     }
   };
 
@@ -162,7 +235,7 @@ export default function Home() {
         setTurno(null);
       } catch (err) {
         setError(err.message);
-        return;
+      return;
       }
     }
 
@@ -185,8 +258,23 @@ export default function Home() {
       setJornadas([...jornadas, newJornada]);
       setActiveJornadaId(newJornada.idJornada);
       setError(null);
-      // Abrir automáticamente el formulario de crear turno
+      
+      // Abrir automáticamente el formulario de crear turno con animación
       setShowCrearTurnoForm(true);
+      setHighlightTurnoForm(true);
+      
+      // Scroll hacia el formulario
+      setTimeout(() => {
+        const turnoFormElement = document.getElementById('nuevo-turno-form');
+        if (turnoFormElement) {
+          turnoFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Desactivar la animación después de unos segundos
+        setTimeout(() => {
+          setHighlightTurnoForm(false);
+        }, 3000);
+      }, 100);
     } catch (err) {
       setError(err.message);
     }
@@ -257,31 +345,87 @@ export default function Home() {
     }
   };
 
+  // Maneja la acción de crear carrera
   const handleCrearCarrera = async () => {
-    if (!turno) return;
+    if (!turno || !turno.idTurno) {
+      setError('No hay un turno activo para registrar una carrera.');
+      return;
+    }
+
+    if (!formData.importeTotal) {
+      setError('Debe ingresar el importe total de la carrera.');
+      return;
+    }
 
     try {
-      const resp = await fetch(`/api/turnos/${turno.idTurno}/carreras`, {
+      console.log("Creando carrera para el turno:", turno.idTurno);
+      console.log("Datos de la carrera:", formData);
+      
+      const resp = await fetch(`/api/carreras/turno/${turno.idTurno}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          importeTotal: formData.importeTotal,
-          tipoPago: formData.tipoPago
+          importeTotal: parseFloat(formData.importeTotal),
+          tipoPago: formData.tipoPago,
+          fechaInicio: new Date().toISOString()
         })
       });
 
       if (!resp.ok) {
-        const errorData = await resp.json();
-        throw new Error(errorData.message || 'Error al crear carrera');
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(`Error al crear carrera: ${errorData.message || resp.statusText}`);
       }
+      
+      const newCarrera = await resp.json();
+      console.log("Nueva carrera creada:", newCarrera);
+      
+      // Añadir la carrera al turno actual
+      if (!turno.carreras) {
+        turno.carreras = [];
+      }
+      
+      turno.carreras.push(newCarrera);
+      setTurno({...turno}); // Forzar actualización
+      
+      // Actualizar también las jornadas para que se refleje la nueva carrera
+      const updatedJornadas = jornadas.map(j => {
+        if (j.idJornada === activeJornadaId) {
+          // Buscar y actualizar el turno en la jornada
+          if (j.turnos) {
+            j.turnos = j.turnos.map(t => {
+              if (t.idTurno === turno.idTurno) {
+                // Si el turno ya tiene carreras, añadir la nueva
+                if (!t.carreras) {
+                  t.carreras = [];
+                }
+                t.carreras.push(newCarrera);
+              }
+              return t;
+            });
+          }
+        }
+        return j;
+      });
+      
+      setJornadas(updatedJornadas);
 
-      setShowCarreraForm(false);
+      // Limpiar formulario
       setFormData({
-        ...formData,
         importeTotal: '',
         tipoPago: 'efectivo'
       });
+      
+      setShowCarreraForm(false);
+      setError(null);
+      
+      // Mostrar mensaje de éxito
+      setSuccessMessage('Carrera registrada correctamente');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
     } catch (err) {
+      console.error("Error al crear carrera:", err);
       setError(err.message);
     }
   };
@@ -293,50 +437,115 @@ export default function Home() {
   };
 
   // Maneja la acción de continuar jornada actual
-  const handleContinueJornadaClick = () => {
-    // Simplemente permite crear un nuevo turno en la jornada activa
-    setError(null);
+  const handleContinueJornadaClick = (jornadaId) => {
+    const targetJornadaId = jornadaId || activeJornadaId;
+    
+    if (!targetJornadaId) {
+      setError('No hay jornada activa para continuar.');
+      return;
+    }
+    
+    setActiveJornadaId(targetJornadaId);
+    
+    // Si ya hay un turno activo, ir directamente a la página de carreras
+    if (turno && turno.idTurno) {
+      navigate(`/jornada/${targetJornadaId}/turno/${turno.idTurno}/carrera`);
+      return;
+    }
+    
+    // Si no hay turno activo, mostrar formulario de creación de turno con animación destacada
     setShowCrearTurnoForm(true);
+    setHighlightTurnoForm(true);
+    
+    // Scroll hacia el formulario
+    setTimeout(() => {
+      const turnoFormElement = document.getElementById('nuevo-turno-form');
+      if (turnoFormElement) {
+        turnoFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      // Desactivar la animación después de unos segundos
+      setTimeout(() => {
+        setHighlightTurnoForm(false);
+      }, 3000);
+    }, 100);
+    
+    console.log("Continuando jornada: " + targetJornadaId);
   };
 
+  // Modificamos el useEffect para que no redirija automáticamente, sino que sea controlado por el usuario
   useEffect(() => {
-    // Redirigir automáticamente a la pantalla de carreras si hay turno abierto
+    // Solo vamos a verificar que la información sea consistente
     if (activeJornadaId && turno && turno.idTurno) {
-      navigate(`/jornada/${activeJornadaId}/turno/${turno.idTurno}/carrera`);
+      console.log(`Jornada activa: ${activeJornadaId}, Turno activo: ${turno.idTurno}`);
     }
-  }, [activeJornadaId, turno, navigate]);
+  }, [activeJornadaId, turno]);
 
   // Función para obtener solo la fecha (sin hora)
   function toDateString(date) {
-    return new Date(date).toISOString().split('T')[0];
+    // Asegurar que la fecha se maneja correctamente sin importar el formato de entrada
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  // Días con jornadas
+  // Días con jornadas - Mejorado para evitar problemas con formatos de fecha
   const jornadasPorFecha = {};
   jornadas.forEach(j => {
+    // Verificar que j.fechaInicio existe y es válido
+    if (j && j.fechaInicio) {
     const fecha = toDateString(j.fechaInicio);
+      console.log(`Procesando jornada ${j.idJornada} con fecha ${fecha}`);
     if (!jornadasPorFecha[fecha]) jornadasPorFecha[fecha] = [];
     jornadasPorFecha[fecha].push(j);
+    }
   });
   const fechasConJornada = Object.keys(jornadasPorFecha);
+  console.log("Fechas con jornadas:", fechasConJornada);
 
   // Renderizar jornadas y carreras del día seleccionado
   function renderJornadasDelDia() {
     if (!selectedDate) return null;
+    
     const fecha = toDateString(selectedDate);
-    const jornadasDia = jornadasPorFecha[fecha] || [];
-    if (!jornadasDia.length) {
-      return <div className="text-text-muted text-center mt-4">No hay jornadas en este día.</div>;
+    console.log(`Buscando jornadas para fecha: ${fecha}`);
+    
+    // Buscar todas las jornadas que coincidan con la fecha seleccionada
+    const jornadasDelDia = jornadas.filter(jornada => {
+      if (!jornada || !jornada.fechaInicio) return false;
+      const jornadaFecha = toDateString(jornada.fechaInicio);
+      const coincide = jornadaFecha === fecha;
+      console.log(`Jornada ${jornada.idJornada}: ${jornadaFecha} vs ${fecha} = ${coincide}`);
+      return coincide;
+    });
+    
+    console.log(`Jornadas encontradas para ${fecha}:`, jornadasDelDia);
+    
+    if (jornadasDelDia.length === 0) {
+      return (
+        <div className="bg-background/30 rounded-lg p-6 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-text-muted">No hay jornadas en este día.</p>
+          <button 
+            onClick={handleNewJornada}
+            className="mt-4 text-primary hover:text-primary-light transition-colors text-sm underline"
+          >
+            Crear nueva jornada
+          </button>
+        </div>
+      );
     }
+    
     return (
-      <div className="flex flex-col gap-6 mt-4">
-        {jornadasDia.map(j => (
+      <div className="flex flex-col gap-6 mt-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
+        {jornadasDelDia.map(j => (
           <div key={j.idJornada} className="bg-surface rounded-2xl p-6 border border-border shadow flex flex-col gap-2">
             <div className="font-bold text-primary text-lg mb-1">Jornada #{j.idJornada} ({j.estado})</div>
             <div className="text-sm text-text-muted mb-1">Inicio: {new Date(j.fechaInicio).toLocaleString()}</div>
             <div className="text-sm text-text-muted mb-1">Final: {j.fechaFinal ? new Date(j.fechaFinal).toLocaleString() : '—'}</div>
             <div className="font-semibold text-primary mt-2 mb-1">Turnos:</div>
-            {j.turnos?.length ? (
+            {j.turnos && j.turnos.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {j.turnos.map(t => (
                   <li key={t.idTurno} className="bg-background rounded-xl p-4 border border-border shadow flex flex-col gap-1">
@@ -345,7 +554,7 @@ export default function Home() {
                     <div className="text-xs text-text-muted">Inicio: {new Date(t.fechaInicio).toLocaleString()}</div>
                     <div className="text-xs text-text-muted">Final: {t.fechaFinal ? new Date(t.fechaFinal).toLocaleString() : '—'}</div>
                     <div className="font-semibold text-primary mt-2 mb-1">Carreras:</div>
-                    {t.carreras?.length ? (
+                    {t.carreras && t.carreras.length > 0 ? (
                       <ul className="flex flex-col gap-1">
                         {t.carreras.map(c => (
                           <li key={c.idCarrera} className="bg-surface rounded p-2 border border-border">
@@ -368,47 +577,136 @@ export default function Home() {
   // Función para renderizar detalles de una jornada
   function renderDetallesJornada(jornada) {
     return (
-      <div className="flex flex-col gap-8">
-        <div className="mb-2">
-          <div className="font-extrabold text-xl text-primary mb-1">Jornada #{jornada.idJornada}</div>
-          <div className="text-text-muted text-base mb-1">Fecha inicio: <span className="font-semibold text-text">{new Date(jornada.fechaInicio).toLocaleString()}</span></div>
-          <div className="text-text-muted text-base mb-1">Fecha final: <span className="font-semibold text-text">{jornada.fechaFinal ? new Date(jornada.fechaFinal).toLocaleString() : '—'}</span></div>
-          <div className="text-text-muted text-base mb-1">Estado: <span className="font-semibold text-text">{jornada.estado}</span></div>
-          <div className="text-text-muted text-base mb-1">Taxista: <span className="font-semibold text-text">{jornada.taxista?.nombre} {jornada.taxista?.apellidos} ({jornada.taxista?.licencia})</span></div>
+      <div className="bg-surface/80 rounded-lg p-4 mb-4 border border-border shadow-sm">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <span className="text-lg font-semibold text-text">Jornada {jornada.idJornada}</span>
+            {jornada.estado && (
+              <span className={`ml-2 inline-block px-2 py-0.5 rounded-full text-xs ${
+                jornada.estado.toLowerCase() === 'cerrada' ? 'bg-gray-700/30 text-gray-400 border border-gray-700/40' : 'bg-green-900/30 text-green-400 border border-green-800/40'
+              }`}>
+                {jornada.estado}
+              </span>
+            )}
+          </div>
+          <div className="text-text-muted text-sm">
+            {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleDateString()}
+          </div>
         </div>
-        <div>
-          <div className="font-bold text-lg text-primary/80 mb-3">Turnos:</div>
-          {jornada.turnos?.length ? (
-            <ul className="flex flex-col gap-6">
-              {jornada.turnos.map(turno => (
-                <li key={turno.idTurno} className="bg-background/80 rounded-xl p-5 border border-border shadow flex flex-col gap-2">
-                  <div className="font-bold text-base text-primary mb-1">Turno #{turno.idTurno}</div>
-                  <div className="text-base text-text-muted">KM Inicial: <span className="text-text font-semibold">{turno.kmInicial}</span> | KM Final: <span className="text-text font-semibold">{turno.kmFinal ?? '—'}</span></div>
-                  <div className="text-base text-text-muted">Inicio: <span className="text-text font-semibold">{new Date(turno.fechaInicio).toLocaleString()}</span></div>
-                  <div className="text-base text-text-muted">Final: <span className="text-text font-semibold">{turno.fechaFinal ? new Date(turno.fechaFinal).toLocaleString() : '—'}</span></div>
-                  <div className="text-base text-text-muted mb-2">Estado: <span className="text-text font-semibold">{turno.estado}</span></div>
-                  <div className="font-semibold text-primary/70 mt-2 mb-1">Carreras:</div>
-                  {turno.carreras?.length ? (
-                    <ul className="flex flex-col gap-3">
-                      {turno.carreras.map(carrera => (
-                        <li key={carrera.idCarrera} className="bg-surface rounded-lg p-4 border border-border shadow flex flex-col gap-1">
-                          <div className="font-semibold text-text">Carrera #{carrera.idCarrera}</div>
-                          <div className="text-sm text-text-muted">Fecha: <span className="text-text font-medium">{new Date(carrera.fechaInicio).toLocaleString()}</span></div>
-                          <div className="text-sm text-text-muted">Importe: <span className="text-text font-medium">{carrera.importeTotal} €</span> | Taxímetro: <span className="text-text font-medium">{carrera.importeTaximetro ?? '—'} €</span></div>
-                          <div className="text-sm text-text-muted">Pago: <span className="text-text font-medium">{carrera.tipoPago}</span></div>
-                          {carrera.notas && <div className="text-sm text-text-muted">Notas: <span className="text-text font-medium">{carrera.notas}</span></div>}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <div className="text-sm text-text-muted">Sin carreras</div>}
-                </li>
-              ))}
-            </ul>
-          ) : <div className="text-base text-text-muted">Sin turnos</div>}
+
+        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+          <div>
+            <p className="text-text-muted">Inicio</p>
+            <p className="font-medium">{jornada.fechaInicio ? new Date(jornada.fechaInicio).toLocaleTimeString() : 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-text-muted">Fin</p>
+            <p className="font-medium">{jornada.fechaFinal ? new Date(jornada.fechaFinal).toLocaleTimeString() : 'En curso'}</p>
+          </div>
+          <div>
+            <p className="text-text-muted">Turnos</p>
+            <p className="font-medium">{jornada.turnos ? jornada.turnos.length : 0}</p>
+          </div>
+        </div>
+
+        <div className="flex space-x-2">
+          {jornada.estado?.toLowerCase() === 'activa' && (
+            <button
+              onClick={() => handleContinueJornadaClick(jornada.idJornada)}
+              className="flex-1 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+            >
+              Continuar Jornada
+            </button>
+          )}
+          <button
+            onClick={() => handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
+            className={`${jornada.estado?.toLowerCase() === 'activa' ? '' : 'flex-1'} bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
+          >
+            Ver Detalles
+          </button>
         </div>
       </div>
     );
   }
+
+  // Modificar la función que maneja el cambio de fecha en el calendario
+  const handleCalendarChange = (date) => {
+    setSelectedDate(date);
+    // Actualizar mes y año actual cuando cambie la fecha
+    if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) {
+      setCurrentMonth(date.getMonth());
+      setCurrentYear(date.getFullYear());
+    }
+  };
+
+  // Efecto para calcular estadísticas mensuales cuando cambie el mes o las jornadas
+  useEffect(() => {
+    // Filtrar jornadas por mes actual
+    const jornadasDelMes = jornadas.filter(jornada => {
+      if (!jornada || !jornada.fechaInicio) return false;
+      const fecha = new Date(jornada.fechaInicio);
+      return fecha.getMonth() === currentMonth && fecha.getFullYear() === currentYear;
+    });
+
+    // Calcular estadísticas para el mes
+    const totalCarreras = jornadasDelMes.reduce((sum, j) => 
+      sum + (j.turnos?.reduce((tSum, t) => 
+        tSum + (t.carreras?.length || 0), 0) || 0), 0);
+    
+    const totalRecaudado = jornadasDelMes.reduce((sum, j) => 
+      sum + (j.turnos?.reduce((tSum, t) => 
+        tSum + (t.carreras?.reduce((cSum, c) => 
+          cSum + (parseFloat(c.importeTotal) || 0), 0) || 0), 0) || 0), 0);
+
+    setMonthlyStats({
+      totalJornadas: jornadasDelMes.length,
+      totalCarreras,
+      totalRecaudado
+    });
+  }, [jornadas, currentMonth, currentYear]);
+
+  // Efecto para mostrar información detallada sobre las jornadas y fechas
+  useEffect(() => {
+    // Crear un registro de jornadas por fecha para depuración
+    const fechasRegistro = {};
+    jornadas.forEach(j => {
+      if (j && j.fechaInicio) {
+        const fechaOriginal = j.fechaInicio;
+        const fechaObj = new Date(fechaOriginal);
+        const fechaFormateada = toDateString(fechaOriginal);
+        
+        if (!fechasRegistro[fechaFormateada]) {
+          fechasRegistro[fechaFormateada] = [];
+        }
+        
+        fechasRegistro[fechaFormateada].push({
+          id: j.idJornada,
+          fechaOriginal,
+          fechaObjToString: fechaObj.toString(),
+          toISOString: fechaObj.toISOString(),
+          turnos: j.turnos?.length || 0,
+          totalCarreras: j.turnos?.reduce((total, t) => total + (t.carreras?.length || 0), 0) || 0
+        });
+      }
+    });
+    
+    console.log("Registro detallado de fechas y jornadas:", fechasRegistro);
+    
+    // Actualizar las jornadas del día cuando cambia el día seleccionado o las jornadas
+    if (selectedDate) {
+      const fecha = toDateString(selectedDate);
+      console.log("Fecha seleccionada formateada:", fecha);
+      console.log("Todas las jornadas disponibles por fecha:", jornadasPorFecha);
+      console.log("Jornadas para la fecha seleccionada:", jornadasPorFecha[fecha] || "Ninguna");
+    }
+  }, [selectedDate, jornadas]);
+
+  // Add a function to handle 'Ver Detalles' button click
+  const handleVerDetalles = (turnoId, jornadaId) => {
+    setSelectedTurnoId(turnoId);
+    setSelectedJornadaId(jornadaId);
+    setDetallesModalOpen(true);
+  };
 
   if (loading) {
     return (
@@ -418,155 +716,592 @@ export default function Home() {
     );
   }
 
-  // Sustituir todo el contenido del return por un layout más web, con más relleno visual
+  // Nuevo renderizado con el estilo moderno
   return (
-    <div className="min-h-screen bg-background text-text flex flex-col items-center p-0">
-      {/* Hero/Header grande */}
-      <header className="w-full bg-gradient-to-br from-primary/30 to-background/80 py-12 px-4 flex flex-col items-center shadow-lg mb-10 border-b border-border">
-        <div className="max-w-6xl w-full flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col gap-2">
-            <span className="text-4xl md:text-5xl font-extrabold text-primary drop-shadow-lg">TaxiDay</span>
-            <span className="text-text-muted text-lg md:text-xl">Bienvenido, {user?.nombre || user?.licencia}</span>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/10 flex flex-col">
+      {/* Header con navegación y datos del usuario */}
+      <header className="w-full bg-surface/60 backdrop-blur-sm border-b border-border shadow-md">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="bg-primary p-2 rounded-lg shadow">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-primary">TaxiDay</h1>
           </div>
-          <button onClick={logout} className="bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-3 px-8 rounded-xl transition-colors shadow-md text-lg">Cerrar sesión</button>
+          
+          <div className="flex items-center space-x-4">
+            {user && (
+              <div className="text-right">
+                <p className="text-text font-medium">{user.nombre} {user.apellidos}</p>
+                <p className="text-text-muted text-sm">Licencia: {user.licencia}</p>
+              </div>
+            )}
+            <button 
+              onClick={handleLogout}
+              className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Mensaje de éxito tras cerrar turno */}
-      {successMessage && (
-        <div className="mb-6 bg-green-800/90 text-green-100 px-6 py-3 rounded-xl shadow-lg border border-green-700/60 max-w-2xl w-full text-center">
-          {successMessage}
-        </div>
-      )}
+      {/* Contenido principal */}
+      <div className="flex-1 container mx-auto px-6 py-8">
+        {/* Mensajes de error y éxito */}
+        {error && (
+          <div className="mb-6 bg-red-800/40 border border-red-700/50 text-red-200 px-6 py-4 rounded-lg text-sm animate-fade-in">
+            {error}
+          </div>
+        )}
 
-      {/* Estadísticas y acciones principales en grid */}
-      <section className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-4 gap-12 mb-16 px-4 items-start">
-        {/* Calendario */}
-        <div className="col-span-1 flex flex-col items-center bg-surface rounded-2xl shadow-lg border border-border p-4 min-w-[260px] max-w-[320px] mx-auto">
-          <div className="font-bold text-primary text-base mb-2">Calendario de Jornadas</div>
-          <Calendar
-            onChange={setSelectedDate}
-            value={selectedDate}
-            tileClassName={({ date, view }) => {
-              if (view === 'month' && fechasConJornada.includes(toDateString(date))) {
-                return 'bg-primary/30 text-primary font-bold rounded-full';
-              }
-              return '';
-            }}
-            locale="es-ES"
-            calendarType="iso8601"
-            className="!bg-background !text-text !border-none !shadow-none !rounded-xl !p-2"
-          />
-          {renderJornadasDelDia()}
-        </div>
-        {/* Estadísticas y acciones */}
-        <div className="col-span-1 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Estadísticas */}
-          {[
-            { label: 'Jornadas', value: stats.totalJornadas, icon: icons[0] },
-            { label: 'Carreras', value: stats.totalCarreras, icon: icons[1] },
-            { label: 'Recaudado', value: stats.totalRecaudado.toFixed(2) + ' €', icon: icons[2] }
-          ].map((stat, i) => (
-            <div key={stat.label} className="bg-surface rounded-2xl p-6 shadow-lg border border-border flex flex-col items-center min-h-[120px] justify-center transition-all">
-              {stat.icon}
-              <span className="text-5xl font-extrabold text-primary leading-tight mb-1">{stat.value}</span>
-              <span className="text-text-muted text-base">{stat.label}</span>
+        {successMessage && (
+          <div className="mb-6 bg-green-800/40 border border-green-700/50 text-green-200 px-6 py-4 rounded-lg text-sm animate-fade-in">
+            {successMessage}
+          </div>
+        )}
+
+        {/* Panel de estadísticas (más compacto) */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-xl border border-border shadow-lg flex items-center space-x-3">
+            <div className="bg-primary/20 p-2 rounded-lg">
+              {icons[0]}
             </div>
-          ))}
-          {/* Acciones principales */}
-          <div className="col-span-full flex flex-col gap-4 justify-center mt-8">
-            {!activeJornadaId && (
-              <button onClick={handleNewJornada} className="w-full bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-3 rounded-2xl shadow-lg transition-colors text-lg">Nueva Jornada</button>
-            )}
-            {activeJornadaId && !turno && (
-              <>
-                <button onClick={handleNewJornada} className="w-full bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-3 rounded-2xl shadow-lg transition-colors text-lg">Nueva Jornada</button>
-                <button onClick={() => setShowCrearTurnoForm(true)} className="w-full bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-3 rounded-2xl shadow-lg transition-colors text-lg">Continuar Jornada</button>
-              </>
-            )}
-            {!activeJornadaId && (
-              <button disabled className="w-full bg-surface text-text-muted font-semibold py-3 rounded-2xl shadow-lg border border-border transition-colors text-lg cursor-not-allowed">Continuar Jornada</button>
-            )}
+            <div>
+              <p className="text-2xl font-bold text-primary">{stats.totalJornadas}</p>
+              <p className="text-text-muted text-xs">Jornadas</p>
+            </div>
+          </div>
+          
+          <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-xl border border-border shadow-lg flex items-center space-x-3">
+            <div className="bg-primary/20 p-2 rounded-lg">
+              {icons[1]}
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{stats.totalCarreras}</p>
+              <p className="text-text-muted text-xs">Carreras</p>
+            </div>
+          </div>
+
+          <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-xl border border-border shadow-lg flex items-center space-x-3">
+            <div className="bg-primary/20 p-2 rounded-lg">
+              {icons[2]}
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{stats.totalRecaudado.toFixed(2)}€</p>
+              <p className="text-text-muted text-xs">Recaudación</p>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* Formulario para crear turno */}
-      {showCrearTurnoForm && (
-        <section className="w-full max-w-lg mx-auto bg-surface rounded-2xl shadow-2xl p-10 mb-12 border border-border">
-          <h2 className="text-2xl font-bold text-primary mb-6 text-center">Nuevo Turno</h2>
-          <form onSubmit={handleCrearTurno} className="space-y-6">
-            <div>
-              <label className="block text-text text-sm font-medium mb-2">KM Inicial</label>
-              <input
-                type="number"
-                name="kmInicial"
-                value={formData.kmInicial}
-                onChange={e => setFormData({ ...formData, kmInicial: e.target.value })}
-                className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text placeholder-text-muted text-base"
-                placeholder="Introduce los KM iniciales"
-                required
-              />
+        
+        {/* Opciones principales simplificadas: Nueva Jornada y Continuar Jornada */}
+        <div className="mb-8">
+          <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden">
+            <div className="px-6 py-5 border-b border-border">
+              <h2 className="text-xl font-bold text-primary">Tu Jornada</h2>
             </div>
-            <div className="flex gap-6 mt-8">
-              <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-3 rounded-lg transition-colors shadow-md text-lg">Guardar Turno</button>
-              <button type="button" onClick={() => setShowCrearTurnoForm(false)} className="flex-1 bg-surface hover:bg-background text-primary font-semibold py-3 rounded-lg border border-primary transition-colors shadow-md text-lg">Cancelar</button>
+            
+            <div className="p-6">
+              {activeJornadaId ? (
+                // Si hay una jornada activa
+                <div className="flex flex-col items-center">
+                  <div className="bg-green-500/20 rounded-full p-4 mb-4">
+                    <svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-primary mb-2">Jornada Activa #{activeJornadaId}</h3>
+                  <p className="text-center text-text-muted mb-6">
+                    {turno 
+                      ? `Tienes un turno activo (#${turno.idTurno}). Continúa registrando tus carreras.`
+                      : "Tu jornada está activa. Crea un nuevo turno para comenzar a registrar carreras."}
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
+                    {turno ? (
+                      <button
+                        onClick={() => navigate(`/jornada/${activeJornadaId}/turno/${turno.idTurno}/carrera`)}
+                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-3 rounded-lg transition-colors shadow-md"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Continuar Turno
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowCrearTurnoForm(true);
+                          setTimeout(() => {
+                            const turnoFormElement = document.getElementById('nuevo-turno-form');
+                            if (turnoFormElement) {
+                              turnoFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          }, 100);
+                        }}
+                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-3 rounded-lg transition-colors shadow-md"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Crear Turno
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('¿Estás seguro de que deseas cerrar esta jornada? Esta acción no se puede deshacer.')) {
+                          try {
+                            const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ fechaFinal: new Date().toISOString() })
+                            });
+                            
+                            if (!closeResp.ok) {
+                              const errorData = await closeResp.json();
+                              throw new Error(`Error al cerrar jornada: ${errorData.message || closeResp.statusText}`);
+                            }
+                            
+                            setSuccessMessage('Jornada cerrada correctamente');
+                            setActiveJornadaId(null);
+                            setTurno(null);
+                            
+                            // Actualizar las jornadas para reflejar el cambio
+                            const updatedJornadas = jornadas.map(j => {
+                              if (j.idJornada === activeJornadaId) {
+                                return { ...j, estado: 'cerrada', fechaFinal: new Date().toISOString() };
+                              }
+                              return j;
+                            });
+                            
+                            setJornadas(updatedJornadas);
+                          } catch (err) {
+                            setError(err.message);
+                          }
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-3 rounded-lg transition-colors shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cerrar Jornada
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Si no hay jornada activa
+                <div className="flex flex-col items-center">
+                  <div className="bg-primary/20 rounded-full p-4 mb-4">
+                    <svg className="w-16 h-16 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-primary mb-2">No hay jornada activa</h3>
+                  <p className="text-center text-text-muted mb-6 max-w-md">
+                    Para comenzar a registrar tus carreras, crea una nueva jornada. Esto te permitirá 
+                    llevar un registro organizado de tus actividades diarias.
+                  </p>
+                  
+                  <button
+                    onClick={handleNewJornada}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-6 py-3 rounded-lg transition-colors shadow-md w-full max-w-xs"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-gray-900 border-r-2 rounded-full"></span>
+                        Creando...
+                      </span>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nueva Jornada
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
-          </form>
-        </section>
-      )}
-
-      {/* Lista de jornadas */}
-      <section className="w-full max-w-6xl bg-surface rounded-2xl shadow-2xl border border-border p-8 mb-16 mt-8">
-        <h2 className="text-xl font-bold text-primary mb-4">Historial de Jornadas</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-base">
-            <thead>
-              <tr className="text-text-muted border-b border-border">
-                <th className="py-2 px-4 text-left">ID</th>
-                <th className="py-2 px-4 text-left">Fecha</th>
-                <th className="py-2 px-4 text-left">Estado</th>
-                <th className="py-2 px-4 text-left">Turnos</th>
-                <th className="py-2 px-4 text-left">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jornadas.map(j => (
-                <tr key={j.idJornada} className="border-b border-border hover:bg-background/40 transition-colors rounded-xl">
-                  <td className="py-2 px-4">{j.idJornada}</td>
-                  <td className="py-2 px-4">{new Date(j.fechaInicio).toLocaleString()}</td>
-                  <td className="py-2 px-4">{j.estado}</td>
-                  <td className="py-2 px-4">{j.turnos?.length || 0}</td>
-                  <td className="py-2 px-4">
-                    <button onClick={() => setModalDetalles({ open: true, jornada: j })} className="text-primary hover:underline text-base">Ver detalles</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          </div>
         </div>
-      </section>
+        
+        {/* Formulario para crear turno (condicional) */}
+        {activeJornadaId && showCrearTurnoForm && (
+          <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden mb-8">
+            <div className="px-6 py-5 border-b border-border">
+              <h2 className="text-xl font-bold text-primary">Nuevo Turno</h2>
+            </div>
+            
+            <div className="p-6">
+              <div id="nuevo-turno-form" className={`bg-surface/80 rounded-lg p-5 border ${highlightTurnoForm ? 'border-primary animate-pulse' : 'border-border'}`}>
+                <form onSubmit={handleCrearTurno}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-text mb-1">
+                      KM Iniciales
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      name="kmInicial"
+                      value={formData.kmInicial}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                          setFormData(prev => ({ ...prev, kmInicial: value }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-gray-900 border-r-2 rounded-full"></span>
+                          Creando...
+                        </span>
+                      ) : 'Crear Turno'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCrearTurnoForm(false)}
+                      className="bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* Errores */}
-      {error && error !== 'Error al cargar turno activo' && (
-        <div className="fixed bottom-6 right-6 bg-red-800/90 text-red-100 px-6 py-3 rounded-xl shadow-lg border border-red-700/60">
-          {error}
+        {/* Sección combinada: Calendario y Jornadas */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Panel izquierdo: Calendario */}
+          <div className="lg:col-span-1">
+            <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden mb-8">
+              <div className="px-6 py-5 border-b border-border">
+                <h2 className="text-xl font-bold text-primary">Calendario</h2>
+              </div>
+              
+              <div className="p-4">
+                <div className="mb-4 react-calendar-container">
+                  <Calendar
+                    onChange={handleCalendarChange}
+                    value={selectedDate || new Date()}
+                    onActiveStartDateChange={({ activeStartDate }) => {
+                      if (activeStartDate) {
+                        setCurrentMonth(activeStartDate.getMonth());
+                        setCurrentYear(activeStartDate.getFullYear());
+                      }
+                    }}
+                    tileClassName={({ date, view }) => {
+                      if (view === 'month') {
+                        const dateString = toDateString(date);
+                        // Comprobar si hay jornadas para este día
+                        const hasJornada = fechasConJornada.includes(dateString);
+                        return hasJornada ? 'has-jornada' : null;
+                      }
+                    }}
+                  />
+                </div>
+                
+                <p className="text-sm text-text-muted text-center">
+                  Los días con jornadas están marcados. Haz clic para ver detalles.
+                </p>
+              </div>
+            </div>
+            
+            {/* Estadísticas mensuales */}
+            <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-border">
+                <h2 className="text-xl font-bold text-primary">Estadísticas Mensuales</h2>
+              </div>
+              
+              <div className="p-6">
+                <h3 className="text-lg font-medium mb-4">
+                  {new Date(currentYear, currentMonth).toLocaleString('es', { month: 'long', year: 'numeric' })}
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Jornadas:</span>
+                    <span className="font-semibold">{monthlyStats.totalJornadas}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Carreras:</span>
+                    <span className="font-semibold">{monthlyStats.totalCarreras}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Recaudación:</span>
+                    <span className="font-semibold text-primary">{monthlyStats.totalRecaudado.toFixed(2)}€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Panel derecho: Jornadas (del día seleccionado o recientes) */}
+          <div className="lg:col-span-2">
+            <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-border flex justify-between items-center">
+                <h2 className="text-xl font-bold text-primary">
+                  {selectedDate 
+                    ? `Jornadas del ${selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}` 
+                    : 'Jornadas Recientes'}
+                </h2>
+                
+                {selectedDate ? (
+                  <button 
+                    onClick={() => setSelectedDate(null)} 
+                    className="text-text-muted hover:text-text text-sm"
+                  >
+                    Ver recientes
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setSelectedDate(new Date())} 
+                    className="text-text-muted hover:text-text text-sm"
+                  >
+                    Ver hoy
+                  </button>
+                )}
+              </div>
+              
+              <div className="p-6">
+                {selectedDate ? (
+                  // Jornadas del día seleccionado
+                  <div className="space-y-4">
+                    {(() => {
+                      const fecha = toDateString(selectedDate);
+                      const jornadasDelDia = jornadas.filter(jornada => {
+                        if (!jornada || !jornada.fechaInicio) return false;
+                        return toDateString(jornada.fechaInicio) === fecha;
+                      });
+                      
+                      if (jornadasDelDia.length === 0) {
+                        return (
+                          <div className="bg-background/30 rounded-lg p-6 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-text-muted">No hay jornadas en este día.</p>
+                            <button 
+                              onClick={handleNewJornada}
+                              className="mt-4 text-primary hover:text-primary-light transition-colors text-sm underline"
+                            >
+                              Crear nueva jornada
+                            </button>
+                          </div>
+                        );
+                      }
+                      
+                      // Ordenar jornadas por hora de inicio (más recientes primero)
+                      jornadasDelDia.sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
+                      
+                      return (
+                        <ul className="space-y-3">
+                          {jornadasDelDia.map(jornada => (
+                            <li key={jornada.idJornada} className="bg-surface/80 rounded-lg border border-border shadow-sm overflow-hidden">
+                              <div className="p-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <div className="flex items-center">
+                                    <span className="text-lg font-semibold text-text">Jornada #{jornada.idJornada}</span>
+                                    {jornada.estado && (
+                                      <span className={`ml-2 inline-block px-2 py-0.5 rounded-full text-xs ${
+                                        jornada.estado.toLowerCase() === 'cerrada' 
+                                          ? 'bg-gray-700/30 text-gray-400 border border-gray-700/40' 
+                                          : 'bg-green-900/30 text-green-400 border border-green-800/40'
+                                      }`}>
+                                        {jornada.estado}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-text-muted text-sm">
+                                    {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </div>
+                                </div>
+                                
+                                {/* Resumen de la jornada */}
+                                <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+                                  <div>
+                                    <span className="text-text-muted">Turnos:</span>
+                                    <span className="font-medium ml-1">{jornada.turnos?.length || 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-text-muted">Carreras:</span>
+                                    <span className="font-medium ml-1">
+                                      {jornada.turnos?.reduce((total, t) => total + (t.carreras?.length || 0), 0) || 0}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-text-muted">Total:</span>
+                                    <span className="font-medium ml-1 text-primary">
+                                      {jornada.turnos?.reduce((sum, t) => 
+                                        sum + (t.carreras?.reduce((cSum, c) => 
+                                          cSum + (parseFloat(c.importeTotal) || 0), 0) || 0), 0).toFixed(2)}€
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Botones de acción */}
+                                <div className="flex space-x-2">
+                                  {jornada.estado?.toLowerCase() === 'activa' && (
+                                    <button
+                                      onClick={() => handleContinueJornadaClick(jornada.idJornada)}
+                                      className="flex-1 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm"
+                                    >
+                                      Continuar Jornada
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
+                                    className={`${jornada.estado?.toLowerCase() === 'activa' ? 'flex-1' : 'w-full'} 
+                                      bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
+                                  >
+                                    Ver Detalles
+                                  </button>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  // Jornadas recientes
+                  <div className="space-y-3">
+                    {jornadas.slice(0, 5).map(jornada => (
+                      <div key={jornada.idJornada} className="bg-surface/80 rounded-lg border border-border shadow-sm overflow-hidden">
+                        <div className="p-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center">
+                              <span className="text-lg font-semibold text-text">Jornada #{jornada.idJornada}</span>
+                              {jornada.estado && (
+                                <span className={`ml-2 inline-block px-2 py-0.5 rounded-full text-xs ${
+                                  jornada.estado.toLowerCase() === 'cerrada' 
+                                    ? 'bg-gray-700/30 text-gray-400 border border-gray-700/40' 
+                                    : 'bg-green-900/30 text-green-400 border border-green-800/40'
+                                }`}>
+                                  {jornada.estado}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-text-muted text-sm">
+                              {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                            </div>
+                          </div>
+                          
+                          {/* Resumen de la jornada */}
+                          <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+                            <div>
+                              <span className="text-text-muted">Turnos:</span>
+                              <span className="font-medium ml-1">{jornada.turnos?.length || 0}</span>
+                            </div>
+                            <div>
+                              <span className="text-text-muted">Carreras:</span>
+                              <span className="font-medium ml-1">
+                                {jornada.turnos?.reduce((total, t) => total + (t.carreras?.length || 0), 0) || 0}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-text-muted">Total:</span>
+                              <span className="font-medium ml-1 text-primary">
+                                {jornada.turnos?.reduce((sum, t) => 
+                                  sum + (t.carreras?.reduce((cSum, c) => 
+                                    cSum + (parseFloat(c.importeTotal) || 0), 0) || 0), 0).toFixed(2)}€
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Botones de acción */}
+                          <div className="flex space-x-2">
+                            {jornada.estado?.toLowerCase() === 'activa' && (
+                              <button
+                                onClick={() => handleContinueJornadaClick(jornada.idJornada)}
+                                className="flex-1 bg-primary hover:bg-primary-dark text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm"
+                              >
+                                Continuar Jornada
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
+                              className={`${jornada.estado?.toLowerCase() === 'activa' ? 'flex-1' : 'w-full'} 
+                                bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
+                            >
+                              Ver Detalles
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {jornadas.length > 5 && (
+                      <button 
+                        onClick={() => {
+                          const fechaHoy = new Date();
+                          setSelectedDate(fechaHoy);
+                          setCurrentMonth(fechaHoy.getMonth());
+                          setCurrentYear(fechaHoy.getFullYear());
+                        }}
+                        className="w-full py-2 text-primary hover:bg-primary/5 transition-colors rounded-lg text-center text-sm mt-2"
+                      >
+                        Ver más jornadas
+                      </button>
+                    )}
+                    
+                    {jornadas.length === 0 && (
+                      <div className="bg-background/30 rounded-lg p-6 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-text-muted">No hay jornadas registradas todavía.</p>
+                        <button 
+                          onClick={handleNewJornada}
+                          className="mt-4 text-primary hover:text-primary-light transition-colors text-sm underline"
+                        >
+                          Crear nueva jornada
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-
-      {/* Modal de detalles */}
-      <ModalDetalles
-        open={modalDetalles.open}
-        onClose={() => setModalDetalles({ open: false, jornada: null })}
-        titulo={modalDetalles.jornada ? `Detalles de la Jornada #${modalDetalles.jornada.idJornada}` : ''}
-      >
-        {modalDetalles.jornada && renderDetallesJornada(modalDetalles.jornada)}
-      </ModalDetalles>
+      </div>
 
       {/* Footer */}
-      <footer className="w-full py-8 mt-auto bg-background border-t border-border text-center text-text-muted text-sm">
-        TaxiDay &copy; {new Date().getFullYear()} &mdash; Hecho con ❤️ para taxistas
+      <footer className="w-full py-4 bg-surface/60 backdrop-blur-sm border-t border-border">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-text-muted text-sm">© {new Date().getFullYear()} TaxiDay | Todos los derechos reservados</p>
+        </div>
       </footer>
+      
+      {/* Modal para detalles */}
+      <ModalDetalles 
+        isOpen={detallesModalOpen} 
+        onClose={() => setDetallesModalOpen(false)} 
+        turnoId={selectedTurnoId}
+        jornadaId={selectedJornadaId}
+      />
     </div>
   );
 }

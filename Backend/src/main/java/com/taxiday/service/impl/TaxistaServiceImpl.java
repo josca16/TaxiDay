@@ -33,7 +33,7 @@ public class TaxistaServiceImpl implements TaxistaService {
         orig.setLicencia(cambios.getLicencia());
         // Solo actualizar contraseña si se provee una nueva y no está vacía
         if (cambios.getContrasena() != null && !cambios.getContrasena().isEmpty()) {
-            orig.setContrasena(cambios.getContrasena());
+        orig.setContrasena(cambios.getContrasena());
         }
         return repo.save(orig);
     }
