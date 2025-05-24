@@ -9,18 +9,18 @@ export default function LoginPage({ onSuccessfulLogin, onRegisterClick }) {
     contrasena: ''
   });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+    const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
+      };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    try {
+        try {
     const resp = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -31,73 +31,73 @@ export default function LoginPage({ onSuccessfulLogin, onRegisterClick }) {
         throw new Error(errorData.message || 'Error al iniciar sesión');
       }
       const data = await resp.json();
-      login(data);
+            login(data);
       if (onSuccessfulLogin) onSuccessfulLogin();
-    } catch (err) {
+          } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-primary mb-6 text-center">Iniciar sesión</h2>
-      
+            <div>
+          <h2 className="text-2xl font-bold text-primary mb-6 text-center">            Iniciar sesión          </h2>
+
       {error && (
         <div className="bg-red-800/40 border border-red-700/50 text-red-200 px-4 py-3 rounded-lg text-sm mb-6 animate-fade-in">
           {error}
         </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-text text-sm font-medium mb-2">Licencia</label>
-          <input
-            type="text"
-            name="licencia"
-            value={formData.licencia}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text placeholder-text-muted"
+)}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-text text-sm font-medium mb-2">Licencia</label>
+        <input
+                                type="text"
+                name="licencia"
+                value={formData.licencia}
+                onChange={handleInputChange}
+className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text placeholder-text-muted"
             placeholder="Introduce tu licencia"
             required
-          />
-        </div>
-        <div>
-          <label className="block text-text text-sm font-medium mb-2">Contraseña</label>
-          <input
-            type="password"
-            name="contrasena"
-            value={formData.contrasena}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text placeholder-text-muted"
+              />
+            </div>
+            <div>
+              <label className="block text-text text-sm font-medium mb-2">Contraseña</label>
+        <input
+                                type="password"
+                name="contrasena"
+                value={formData.contrasena}
+                onChange={handleInputChange}
+              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text placeholder-text-muted"
             placeholder="Introduce tu contraseña"
             required
           />
-          <div className="flex justify-end mt-1">
-            <a href="#" className="text-sm text-primary hover:text-primary-light">¿Olvidaste la contraseña?</a>
-          </div>
-        </div>
-        
+                <div className="flex justify-end mt-1">
+                  <a href="#" className="text-sm text-primary hover:text-primary-light">¿Olvidaste la contraseña?</a>
+              </div>
+              </div>
+            
         <div className="pt-2">
-          <button 
-            type="submit" 
-            className="w-full bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-2.5 rounded-lg transition-colors shadow-md"
+            <button
+              type="submit"
+                            className="w-full bg-primary hover:bg-primary-dark text-gray-900 font-semibold py-2.5 rounded-lg transition-colors shadow-md"
           >
             Iniciar sesión
-          </button>
-        </div>
+            </button>
+</div>
         
         <div className="relative py-3">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border"></div>
           </div>
-          <div className="relative flex justify-center">
+        <div className="relative flex justify-center">
             <span className="bg-surface px-4 text-xs text-text-muted">o continuar con</span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
+                        <button
+              type="button"
             className="flex items-center justify-center bg-background hover:bg-gray-700 text-text py-2 px-4 rounded-lg border border-border"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -107,7 +107,7 @@ export default function LoginPage({ onSuccessfulLogin, onRegisterClick }) {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Google
-          </button>
+            </button>
           <button
             type="button"
             className="flex items-center justify-center bg-background hover:bg-gray-700 text-text py-2 px-4 rounded-lg border border-border"
@@ -118,11 +118,11 @@ export default function LoginPage({ onSuccessfulLogin, onRegisterClick }) {
             GitHub
           </button>
         </div>
-        
+
         <div className="text-center text-text-muted text-sm">
           <p>¿No tienes cuenta? <button onClick={onRegisterClick} className="text-primary hover:text-primary-light font-medium">Registrarse</button></p>
-        </div>
-      </form>
+      </div>
+</form>
     </div>
   );
 }

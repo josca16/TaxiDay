@@ -66,18 +66,18 @@ const AuthPage = () => {
           {/* Lado derecho - Formulario de autenticación */}
           <div className="lg:w-1/2 w-full max-w-md">
             <div className="bg-surface/70 backdrop-blur-sm rounded-xl shadow-xl border border-border p-8">
-              {showRegister ? (
-                <RegisterPage 
-                  onSuccessfulRegister={() => setShowRegister(false)}
-                  onCancel={() => setShowRegister(false)}
-                />
-              ) : (
-                <LoginPage 
-                  onSuccessfulLogin={() => {}}
-                  onRegisterClick={() => setShowRegister(true)}
-                />
-              )}
-            </div>
+        {showRegister ? (
+          <RegisterPage 
+            onSuccessfulRegister={() => setShowRegister(false)}
+            onCancel={() => setShowRegister(false)}
+          />
+        ) : (
+          <LoginPage 
+            onSuccessfulLogin={() => {}}
+            onRegisterClick={() => setShowRegister(true)}
+          />
+        )}
+      </div>
           </div>
         </div>
       </div>

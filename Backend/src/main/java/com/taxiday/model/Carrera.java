@@ -25,7 +25,7 @@ public class Carrera {
 
     @Column(name = "importe_taximetro", columnDefinition = "DOUBLE DEFAULT 0")
     private Double importeTaximetro;
-    
+
     @Column(name = "propina", insertable = false, updatable = false)
     private Double propina;
 

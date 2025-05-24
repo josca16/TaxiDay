@@ -8,6 +8,7 @@ public interface TaxistaService {
     List<Taxista> listarTaxistas();
     Taxista buscarPorId(int id);
     Taxista buscarPorLicencia(String licencia);
+    Taxista buscarPorEmail(String email);
     Taxista actualizarTaxista(int id, Taxista cambios);
     boolean borrarTaxista(int id);
 }

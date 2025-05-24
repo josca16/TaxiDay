@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import com.taxiday.dto.TurnoDto;
 import com.taxiday.dto.CarreraDto;
 import com.taxiday.model.Turno;
+import com.taxiday.model.Turno.EstadoTurno;
 import com.taxiday.model.Carrera;
+import com.taxiday.service.TurnoService;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,10 +27,12 @@ public class JornadaController {
 
     private final JornadaService service;
     private final TaxistaRepository taxistaRepo; // Necesario para buscar Taxista en conversión
+    private final TurnoService turnoService; // Añadido para obtener turnos activos
 
-    public JornadaController(JornadaService service, TaxistaRepository taxistaRepo) {
+    public JornadaController(JornadaService service, TaxistaRepository taxistaRepo, TurnoService turnoService) {
         this.service = service;
         this.taxistaRepo = taxistaRepo;
+        this.turnoService = turnoService;
     }
 
     // Helper para convertir Jornada a JornadaDto
@@ -85,7 +89,6 @@ public class JornadaController {
     private Jornada convertToEntity(JornadaDto jornadaDto) {
          if (jornadaDto == null) return null;
          Jornada jornada = new Jornada();
-         jornada.setIdJornada(jornadaDto.getIdJornada());
          jornada.setFechaInicio(jornadaDto.getFechaInicio());
          jornada.setFechaFinal(jornadaDto.getFechaFinal());
          jornada.setEstado(jornadaDto.getEstado());
@@ -151,5 +154,53 @@ public class JornadaController {
                 .map(this::convertToDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+    
+    /** Obtiene el turno activo de una jornada */
+    @GetMapping("/{id}/turno-activo")
+    public ResponseEntity<TurnoDto> getTurnoActivo(@PathVariable int id) {
+        // Verificar que la jornada existe
+        Optional<Jornada> jornadaOpt = service.buscarPorId(id);
+        if (!jornadaOpt.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Buscar turnos activos en esta jornada
+        List<Turno> turnosActivos = turnoService.findByJornadaIdAndEstado(id, EstadoTurno.abierto);
+        
+        if (turnosActivos.isEmpty()) {
+            return ResponseEntity.ok().build(); // No hay turno activo
+        }
+        
+        // Tomar el primer turno activo (debería ser único según la validación del servicio)
+        Turno turnoActivo = turnosActivos.get(0);
+        
+        // Convertir a DTO con información completa incluyendo carreras
+        TurnoDto turnoDto = new TurnoDto();
+        turnoDto.setIdTurno(turnoActivo.getIdTurno());
+        turnoDto.setKmInicial(turnoActivo.getKmInicial());
+        turnoDto.setKmFinal(turnoActivo.getKmFinal());
+        turnoDto.setFechaInicio(turnoActivo.getFechaInicio());
+        turnoDto.setFechaFinal(turnoActivo.getFechaFinal());
+        turnoDto.setEstado(turnoActivo.getEstado());
+        
+        // Añadir carreras si existen
+        if (turnoActivo.getCarreras() != null && !turnoActivo.getCarreras().isEmpty()) {
+            List<CarreraDto> carrerasDto = turnoActivo.getCarreras().stream()
+                .map(carrera -> {
+                    CarreraDto dto = new CarreraDto();
+                    dto.setIdCarrera(carrera.getIdCarrera());
+                    dto.setFechaInicio(carrera.getFechaInicio());
+                    dto.setImporteTotal(carrera.getImporteTotal());
+                    dto.setImporteTaximetro(carrera.getImporteTaximetro());
+                    dto.setTipoPago(carrera.getTipoPago());
+                    dto.setNotas(carrera.getNotas());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+            turnoDto.setCarreras(carrerasDto);
+        }
+        
+        return ResponseEntity.ok(turnoDto);
     }
 }

@@ -23,6 +23,7 @@ public class TaxistaServiceImpl implements TaxistaService {
     @Override public List<Taxista> listarTaxistas() { return repo.findAll(); }
     @Override public Taxista buscarPorId(int id) { return repo.findById(id).orElse(null); }
     @Override public Taxista buscarPorLicencia(String licencia) { return repo.findByLicencia(licencia); }
+    @Override public Taxista buscarPorEmail(String email) { return repo.findByEmail(email); }
     
     @Override
     public Taxista actualizarTaxista(int id, Taxista cambios) {

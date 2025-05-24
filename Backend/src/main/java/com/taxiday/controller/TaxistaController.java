@@ -6,10 +6,13 @@ import com.taxiday.model.Taxista;
 import com.taxiday.service.TaxistaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/taxistas")
@@ -49,14 +52,44 @@ public class TaxistaController {
     }
 
     @PostMapping
-    public ResponseEntity<TaxistaDto> crear(@RequestBody TaxistaDto taxistaDto) {
+    public ResponseEntity<?> crear(@RequestBody TaxistaDto taxistaDto) {
+        try {
+            // Verificar si ya existe un taxista con esa licencia
+            Taxista existente = service.buscarPorLicencia(taxistaDto.getLicencia());
+            if (existente != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("error", "licencia_duplicada");
+                response.put("message", "Ya existe un taxista registrado con esta licencia");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Verificar si ya existe un taxista con ese email (si se proporcionó)
+            if (taxistaDto.getEmail() != null && !taxistaDto.getEmail().isEmpty()) {
+                Taxista existenteEmail = service.buscarPorEmail(taxistaDto.getEmail());
+                if (existenteEmail != null) {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("error", "email_duplicado");
+                    response.put("message", "Ya existe un taxista registrado con este email");
+                    return ResponseEntity.badRequest().body(response);
+                }
+            }
+
         Taxista taxista = convertToEntity(taxistaDto);
-        // La contraseña ya se pasa desde el DTO a la entidad en convertToEntity,
-        // y el TaxistaService se encarga de codificarla.
         Taxista saved = service.crearTaxista(taxista); 
         return ResponseEntity
                 .created(URI.create("/api/taxistas/" + saved.getIdTaxista()))
                 .body(convertToDto(saved));
+        } catch (DataIntegrityViolationException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "datos_invalidos");
+            response.put("message", "Error al crear el taxista: datos inválidos o duplicados");
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "error_interno");
+            response.put("message", "Error interno del servidor al crear el taxista");
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @GetMapping

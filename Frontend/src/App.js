@@ -21,25 +21,25 @@ function App() {
       <Router>
         <div className="min-h-screen w-full bg-background text-text font-sans selection:bg-primary/30 selection:text-white">
           <div className="fixed inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none"></div>
-          <Routes>
+      <Routes>
             <Route path="/" element={<AuthPage />} />
-            <Route 
-              path="/home" 
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
+          <Route 
+            path="/home" 
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
               path="/jornada/:jornadaId/turno/:turnoId/carrera" 
-              element={
-                <ProtectedRoute>
+            element={
+              <ProtectedRoute>
                   <CarreraPage />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+              </ProtectedRoute>
+            }
+          />
+      </Routes>
         </div>
       </Router>
     </AuthProvider>

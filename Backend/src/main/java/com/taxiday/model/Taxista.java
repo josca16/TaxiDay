@@ -12,7 +12,7 @@ public class Taxista {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_taxista") // Coincidir con init.sql (snake_case)
+    @Column(name = "id_taxista")
     private int idTaxista;
 
     @Column(length = 50, nullable = false)

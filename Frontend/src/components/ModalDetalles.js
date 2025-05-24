@@ -25,6 +25,8 @@ const ModalDetalles = ({ isOpen, onClose, turnoId, jornadaId }) => {
       const respTurno = await fetch(`/api/turnos/${turnoId}`);
       if (!respTurno.ok) throw new Error('Error al cargar datos del turno');
       const dataTurno = await respTurno.json();
+      console.log('Datos del turno recibidos en ModalDetalles:', dataTurno);
+      console.log('Notas del turno:', dataTurno.notas);
       setTurnoInfo(dataTurno);
 
       // Cargar carreras del turno
@@ -196,10 +198,14 @@ const ModalDetalles = ({ isOpen, onClose, turnoId, jornadaId }) => {
             {/* Notas del turno */}
             <div className="bg-background/40 p-4 rounded-lg border border-border/50">
               <h3 className="text-lg font-semibold mb-2">Notas</h3>
-              {turnoInfo.notas ? (
-                <p className="whitespace-pre-wrap">{turnoInfo.notas}</p>
+              {turnoInfo.notas && turnoInfo.notas.trim() !== '' ? (
+                <div className="whitespace-pre-wrap bg-background/50 p-3 rounded border border-border/60 text-text">
+                  {turnoInfo.notas}
+                </div>
               ) : (
-                <p className="text-text-muted text-sm italic">Sin notas</p>
+                <p className="text-text-muted text-sm italic bg-background/30 p-3 rounded">
+                  No hay notas para este turno
+                </p>
               )}
             </div>
           </div>
