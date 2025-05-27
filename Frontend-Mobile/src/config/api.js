@@ -1,5 +1,5 @@
 // Configuración de la API
-export const API_URL = 'http://localhost:8080/api';
+export const API_URL = 'http://backend:8085/api';
 
 // Configuración de axios
 import axios from 'axios';
