@@ -16,10 +16,15 @@ import com.taxiday.model.Turno;
 import com.taxiday.model.Turno.EstadoTurno;
 import com.taxiday.model.Carrera;
 import com.taxiday.service.TurnoService;
+import org.springframework.http.HttpStatus;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Map;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/jornadas")
@@ -64,6 +69,7 @@ public class JornadaController {
                 turnoDto.setFechaInicio(turno.getFechaInicio());
                 turnoDto.setFechaFinal(turno.getFechaFinal());
                 turnoDto.setEstado(turno.getEstado());
+                turnoDto.setNotas(turno.getNotas());
                 // Añadir carreras anidadas
                 if (turno.getCarreras() != null) {
                     List<CarreraDto> carrerasDto = turno.getCarreras().stream().map(carrera -> {
@@ -147,18 +153,32 @@ public class JornadaController {
     @PostMapping("/{id}/cerrar")
     public ResponseEntity<JornadaDto> cerrarJornada(
             @PathVariable int id,
-            @RequestBody JornadaDto datosDto
+            @RequestBody Map<String, Object> body
     ) {
-        Jornada datosCierre = convertToEntity(datosDto); // Convertir DTO a entidad para el servicio
-        return service.cerrarJornada(id, datosCierre)
-                .map(this::convertToDto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            // Obtener zona horaria del request o usar la del sistema por defecto
+            String zonaHoraria = body.get("zonaHoraria") instanceof String ?
+                (String) body.get("zonaHoraria") : ZoneId.systemDefault().getId();
+            
+            ZonedDateTime fechaLocal = ZonedDateTime.now(ZoneId.of(zonaHoraria));
+
+            Jornada datosCierre = new Jornada();
+            datosCierre.setFechaFinal(fechaLocal.toLocalDateTime());
+            datosCierre.setEstado(EstadoJornada.cerrada);
+
+            return service.cerrarJornada(id, datosCierre)
+                    .map(this::convertToDto)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
     
     /** Obtiene el turno activo de una jornada */
     @GetMapping("/{id}/turno-activo")
     public ResponseEntity<TurnoDto> getTurnoActivo(@PathVariable int id) {
+        try {
         // Verificar que la jornada existe
         Optional<Jornada> jornadaOpt = service.buscarPorId(id);
         if (!jornadaOpt.isPresent()) {
@@ -169,13 +189,14 @@ public class JornadaController {
         List<Turno> turnosActivos = turnoService.findByJornadaIdAndEstado(id, EstadoTurno.abierto);
         
         if (turnosActivos.isEmpty()) {
-            return ResponseEntity.ok().build(); // No hay turno activo
+                // Retornar un objeto JSON vacío
+                return ResponseEntity.ok(null);
         }
         
         // Tomar el primer turno activo (debería ser único según la validación del servicio)
         Turno turnoActivo = turnosActivos.get(0);
         
-        // Convertir a DTO con información completa incluyendo carreras
+            // Convertir a DTO con información completa incluyendo carreras y notas
         TurnoDto turnoDto = new TurnoDto();
         turnoDto.setIdTurno(turnoActivo.getIdTurno());
         turnoDto.setKmInicial(turnoActivo.getKmInicial());
@@ -183,6 +204,7 @@ public class JornadaController {
         turnoDto.setFechaInicio(turnoActivo.getFechaInicio());
         turnoDto.setFechaFinal(turnoActivo.getFechaFinal());
         turnoDto.setEstado(turnoActivo.getEstado());
+        turnoDto.setNotas(turnoActivo.getNotas());
         
         // Añadir carreras si existen
         if (turnoActivo.getCarreras() != null && !turnoActivo.getCarreras().isEmpty()) {
@@ -195,12 +217,21 @@ public class JornadaController {
                     dto.setImporteTaximetro(carrera.getImporteTaximetro());
                     dto.setTipoPago(carrera.getTipoPago());
                     dto.setNotas(carrera.getNotas());
+                    dto.setEsAeropuerto(carrera.getEsAeropuerto());
+                    dto.setEsEmisora(carrera.getEsEmisora());
                     return dto;
                 })
                 .collect(Collectors.toList());
             turnoDto.setCarreras(carrerasDto);
+            } else {
+                turnoDto.setCarreras(new ArrayList<>());
         }
         
         return ResponseEntity.ok(turnoDto);
+        } catch (Exception e) {
+            // Log del error
+            e.printStackTrace();
+            return ResponseEntity.ok(null); // Devolver null en caso de error para evitar error de JSON
+        }
     }
 }

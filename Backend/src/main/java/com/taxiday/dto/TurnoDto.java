@@ -3,39 +3,41 @@ package com.taxiday.dto;
 // import com.taxiday.model.Jornada; // No es necesario si no se incluye el objeto Jornada completo
 import com.taxiday.model.Turno.EstadoTurno;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class TurnoDto {
-    private int idTurno;
-    private double kmInicial;
-    private double kmFinal;
+    private Integer idTurno;
+    private Double kmInicial;
+    private Double kmFinal;
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFinal;
     private EstadoTurno estado;
+    private String notas;
     // private Integer idJornada; // Si necesitas asociarlo a una jornada al crear/actualizar
-    private java.util.List<CarreraDto> carreras;
+    private List<CarreraDto> carreras;
 
     // Getters y setters
-    public int getIdTurno() {
+    public Integer getIdTurno() {
         return idTurno;
     }
 
-    public void setIdTurno(int idTurno) {
+    public void setIdTurno(Integer idTurno) {
         this.idTurno = idTurno;
     }
 
-    public double getKmInicial() {
+    public Double getKmInicial() {
         return kmInicial;
     }
 
-    public void setKmInicial(double kmInicial) {
+    public void setKmInicial(Double kmInicial) {
         this.kmInicial = kmInicial;
     }
 
-    public double getKmFinal() {
+    public Double getKmFinal() {
         return kmFinal;
     }
 
-    public void setKmFinal(double kmFinal) {
+    public void setKmFinal(Double kmFinal) {
         this.kmFinal = kmFinal;
     }
 
@@ -63,11 +65,19 @@ public class TurnoDto {
         this.estado = estado;
     }
 
-    public java.util.List<CarreraDto> getCarreras() {
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
+    }
+
+    public List<CarreraDto> getCarreras() {
         return carreras;
     }
 
-    public void setCarreras(java.util.List<CarreraDto> carreras) {
+    public void setCarreras(List<CarreraDto> carreras) {
         this.carreras = carreras;
     }
 

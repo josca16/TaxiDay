@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.HashMap;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @RestController
 @RequestMapping("/api/turnos")
@@ -206,57 +208,59 @@ public class TurnoController {
 
     /** Cierra un turno: front envía {"fechaFinal":"2025-05-12T18:30:00","kmFinal":123.4} */
     @PostMapping("/{id}/cerrar")
-    public ResponseEntity<TurnoDto> cerrarTurno(
+    public ResponseEntity<?> cerrarTurno(
             @PathVariable int id,
-            @RequestBody TurnoDto datosDto
+            @RequestBody Map<String, Object> body
     ) {
-        // Para cerrar el turno, solo necesitamos fechaFinal y kmFinal del DTO
-        // Creamos una entidad parcial con estos datos para pasar al servicio
-        Turno datosCierre = new Turno();
-        datosCierre.setFechaFinal(datosDto.getFechaFinal());
-        datosCierre.setKmFinal(datosDto.getKmFinal());
-        
-        // Usar un método en el servicio para cerrar el turno
-        Optional<Turno> cerrado = service.cerrarTurno(id, datosCierre);
-        
-        return cerrado
-                .map(this::convertToTurnoDto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            Double kmFinal = body.get("kmFinal") instanceof Number ? 
+                ((Number) body.get("kmFinal")).doubleValue() : null;
+            
+            if (kmFinal == null) {
+                return ResponseEntity.badRequest().body("El kilómetro final es requerido");
+            }
+
+            String notas = body.get("notas") instanceof String ? 
+                (String) body.get("notas") : "";
+            
+            String zonaHoraria = body.get("zonaHoraria") instanceof String ?
+                (String) body.get("zonaHoraria") : ZoneId.systemDefault().getId();
+            
+            ZonedDateTime fechaLocal = ZonedDateTime.now(ZoneId.of(zonaHoraria));
+
+            Turno turno = new Turno();
+            turno.setKmFinal(kmFinal);
+            turno.setNotas(notas);
+            turno.setFechaFinal(fechaLocal.toLocalDateTime());
+            turno.setEstado(EstadoTurno.cerrado);
+
+            Optional<Turno> turnoCerrado = service.cerrarTurno(id, turno);
+            if (!turnoCerrado.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok(turnoCerrado.get());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // Nuevo endpoint para actualizar las notas de un turno
-    @PutMapping("/{turnoId}/notas")
-    public ResponseEntity<?> actualizarNotas(@PathVariable int turnoId, @RequestBody Map<String, String> requestBody) {
-        String notas = requestBody.get("notas");
-        
+    @PutMapping("/{id}/notas")
+    public ResponseEntity<?> actualizarNotas(@PathVariable int id, @RequestBody Map<String, String> body) {
+        String notas = body.get("notas");
         if (notas == null) {
-            return ResponseEntity.badRequest().body("El campo 'notas' es requerido");
+            return ResponseEntity.badRequest().body("Las notas son requeridas");
         }
         
         try {
-            Optional<Turno> turnoOpt = service.buscarPorId(turnoId);
-            
-            if (!turnoOpt.isPresent()) {
+            Turno turno = service.actualizarNotas(id, notas);
+            if (turno == null) {
                 return ResponseEntity.notFound().build();
             }
-            
-            Turno turno = turnoOpt.get();
-            // Solo actualizamos el campo notas, conservando todos los demás valores
-            turno.setNotas(notas);
-            
-            // Llamamos a un método específico para actualizar solo las notas
-            service.actualizarNotasTurno(turnoId, notas);
-            
-            // Para evitar confusiones en el frontend, creamos un DTO que solo tiene el campo de notas actualizado
-            Map<String, Object> response = new HashMap<>();
-            response.put("idTurno", turnoId);
-            response.put("notas", notas);
-            response.put("success", true);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(turno);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al actualizar las notas: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

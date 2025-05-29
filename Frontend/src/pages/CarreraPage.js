@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ModalDetalles from '../components/ModalDetalles';
 import ErrorMessage from '../components/ErrorMessage';
+import { toast } from 'react-hot-toast';
 
 export default function CarreraPage() {
   const { jornadaId, turnoId } = useParams();
@@ -43,7 +44,6 @@ export default function CarreraPage() {
   const [loadingPausa, setLoadingPausa] = useState(false);
   const [intervaloEstadisticas, setIntervaloEstadisticas] = useState(null);
 
-  // Mover la función fetchTurnoYCarreras fuera del useEffect para que esté disponible en todo el componente
   const fetchTurnoYCarreras = async () => {
     if (!isAuthenticated || !user || !turnoId) return;
     setLoadingCarreras(true);
@@ -54,53 +54,20 @@ export default function CarreraPage() {
       const dataTurno = await respTurno.json();
       console.log('Datos del turno recibidos:', dataTurno);
       
-      // Corregir el formato de fecha si viene en otro formato
-      if (dataTurno.fechaInicio && !dataTurno.horaInicio) {
-        dataTurno.horaInicio = dataTurno.fechaInicio;
-      }
-      
       setTurnoInfo(dataTurno);
-      
-      // Inicializar las notas del turno y asegurarse de que se muestren correctamente
-      if (dataTurno.notas !== undefined) {
-        console.log('Notas recibidas del servidor:', dataTurno.notas);
         setTurnoNotas(dataTurno.notas || '');
-      }
       
-      if (dataTurno.estado && dataTurno.estado.toLowerCase() === 'cerrado') {
-        setTurnoCerrado(true);
-      } else {
-        setTurnoCerrado(false);
-      }
-      
-      // Obtener carreras del turno - Manejar mejor el caso donde no hay carreras
-      try {
+      // Obtener carreras del turno
         const respCarreras = await fetch(`/api/turnos/${turnoId}/carreras`);
-        if (respCarreras.ok) {
+      if (!respCarreras.ok) throw new Error('Error al cargar carreras');
           const dataCarreras = await respCarreras.json();
-          console.log('Carreras recibidas:', dataCarreras); // Log para debugging
+      console.log('Carreras recibidas:', dataCarreras);
           
-          if (Array.isArray(dataCarreras)) {
             setCarreras(dataCarreras);
-          } else if (dataCarreras && typeof dataCarreras === 'object') {
-            // Si recibimos un objeto en lugar de un array, intentamos adaptarlo
-            setCarreras([dataCarreras]);
-          } else {
-            setCarreras([]);
-          }
-        } else {
-          // Si el endpoint devuelve error, asumimos que no hay carreras en vez de mostrar un error
-          console.log('No se encontraron carreras para este turno (código de error)');
-          setCarreras([]);
-        }
+      setLoadingCarreras(false);
       } catch (err) {
-        console.log('No se encontraron carreras para este turno, es normal para turnos nuevos');
-        setCarreras([]);
-      }
-    } catch (err) {
-      console.error('Error cargando datos del turno:', err);
-      setError("Error al cargar datos del turno. Inténtalo de nuevo más tarde.");
-    } finally {
+      console.error('Error:', err);
+      setError(err.message);
       setLoadingCarreras(false);
     }
   };
@@ -187,10 +154,10 @@ export default function CarreraPage() {
       // Actualizar estadísticas inmediatamente
       obtenerEstadisticasTurno();
       
-      // Limpiar mensaje después de 3 segundos
+      // Limpiar mensaje después de 2 segundos
       setTimeout(() => {
         setSuccessMessage('');
-      }, 3000);
+      }, 2000);
       
       } catch (err) {
       console.error('Error pausando turno:', err);
@@ -227,10 +194,10 @@ export default function CarreraPage() {
       // Actualizar estadísticas inmediatamente
       obtenerEstadisticasTurno();
       
-      // Limpiar mensaje después de 3 segundos
+      // Limpiar mensaje después de 2 segundos
       setTimeout(() => {
         setSuccessMessage('');
-      }, 3000);
+      }, 2000);
       
     } catch (err) {
       console.error('Error reanudando turno:', err);
@@ -281,18 +248,21 @@ export default function CarreraPage() {
 
     if (!isAuthenticated || !user) {
       setError('Usuario no autenticado.');
+      setTimeout(() => setError(''), 2000);
       setLoading(false);
       return;
     }
 
     if (turnoCerrado) {
       setError('No puedes agregar carreras a un turno cerrado.');
+      setTimeout(() => setError(''), 2000);
       setLoading(false);
       return;
     }
 
     if (!carreraData.precio || parseFloat(carreraData.precio) <= 0) {
       setError('Por favor, introduce un precio válido mayor que 0.');
+      setTimeout(() => setError(''), 2000);
       setLoading(false);
       return;
     }
@@ -302,6 +272,7 @@ export default function CarreraPage() {
     
     if (precioTaximetro > precioTotal) {
       setError('El importe del taxímetro no puede ser mayor que el importe total.');
+      setTimeout(() => setError(''), 2000);
       setLoading(false);
       return;
     }
@@ -311,13 +282,14 @@ export default function CarreraPage() {
       
       // Datos a enviar al servidor
       const datosCarrera = {
-        importeTotal: precioTotal,
+        importeTotal: parseFloat(carreraData.precio),
         importeTaximetro: precioTaximetro,
         tipoPago: tipoPagoFinal,
         esAeropuerto: carreraData.esAeropuerto || false,
         esEmisora: carreraData.esEmisora || false,
         notas: carreraData.notas || '',
-        fechaInicio: new Date().toISOString()
+        fechaInicio: new Date().toISOString(),
+        zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
       };
       
       console.log('Enviando datos de carrera:', datosCarrera);
@@ -371,6 +343,7 @@ export default function CarreraPage() {
         notas: '' 
       });
       setSuccessMessage('Carrera registrada exitosamente');
+      setTimeout(() => setSuccessMessage(''), 2000);
     } catch (err) {
       console.error('Error registrando carrera:', err);
       setError(err.message);
@@ -389,73 +362,67 @@ export default function CarreraPage() {
   };
 
   const ejecutarCierreTurno = async () => {
-    setError('');
-    setSuccessMessage('');
-    setLoading(true);
-    setKmModalOpen(false);
-    setConfirmModalOpen(false);
-
     try {
+      console.log('Cerrando turno con notas:', turnoNotas);
       const resp = await fetch(`/api/turnos/${turnoId}/cerrar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          kmFinal: parseFloat(kmFinal) 
+          kmFinal: parseFloat(kmFinal),
+          notas: turnoNotas || '', // Asegurar que siempre enviamos un string
+          zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
         })
       });
 
       if (!resp.ok) {
-        if (resp.status === 401) {
-            logout();
-            navigate('/');
-            throw new Error('Sesión expirada o inválida. Por favor, inicie sesión de nuevo.');
-        }
-         const data = await resp.json().catch(() => ({ message: resp.statusText }));
-         setError(data.message || `Error al cerrar turno. Estado: ${resp.status}`);
-         setLoading(false);
-         return;
+        const errorData = await resp.json();
+        throw new Error(errorData.message || 'Error al cerrar turno');
       }
-      
-      // Si se seleccionó cerrar la jornada también
-      if (cerrarJornada && jornadaId) {
-        try {
-          const respJornada = await fetch(`/api/jornadas/${jornadaId}/cerrar`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fechaFinal: new Date().toISOString()
-            })
-          });
-          
-          if (!respJornada.ok) {
-            const dataError = await respJornada.json().catch(() => ({ message: respJornada.statusText }));
-            console.error('Error al cerrar jornada:', dataError);
-            // Continuamos aunque haya error en la jornada, ya que el turno se cerró correctamente
-          }
-          
-          setSuccessMessage('Turno y jornada cerrados exitosamente. Redirigiendo a Home...');
-        } catch (jornadaErr) {
-          console.error('Error cerrando jornada:', jornadaErr);
-          // No lanzamos excepción, continuamos ya que el turno se cerró bien
+
+      // Esperar a que el turno se cierre completamente
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Si también hay que cerrar la jornada
+      if (cerrarJornada) {
+        const respJornada = await fetch(`/api/jornadas/${jornadaId}/cerrar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fechaFinal: new Date().toISOString(),
+            zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+          })
+        });
+        
+        if (!respJornada.ok) {
+          throw new Error('Error al cerrar la jornada');
         }
-      } else {
-      setSuccessMessage('Turno cerrado exitosamente. Redirigiendo a Home...');
+
+        // Esperar a que la jornada se cierre completamente
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+
+      // Guardar mensaje de éxito en sessionStorage para mostrarlo en Home
+      sessionStorage.setItem('successMessage', 'Turno cerrado correctamente');
       
+      // Limpiar el intervalo de estadísticas si existe
+      if (intervaloEstadisticas) {
+        clearInterval(intervaloEstadisticas);
+      }
+
+      // Marcar el turno como cerrado antes de navegar
       setTurnoCerrado(true);
-      setTimeout(() => {
-        sessionStorage.setItem('successMessage', 'Turno cerrado correctamente. Puedes iniciar un nuevo turno o jornada.');
-        navigate('/home');
-      }, 2000);
+      
+      // Esperar un momento antes de navegar para asegurar que todo se ha actualizado
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      navigate('/home');
     } catch (err) {
-      console.error('Error cerrando turno:', err);
-      setError(err.message || 'Error al cerrar el turno. Inténtalo de nuevo más tarde.');
-    } finally {
-      setLoading(false);
+      console.error('Error:', err);
+      setError(err.message);
     }
   };
 
@@ -478,55 +445,37 @@ export default function CarreraPage() {
   };
 
   const handleVolverHome = () => {
-    navigate('/home');
+    if (!turnoCerrado) {
+      if (window.confirm('¿Estás seguro de que deseas volver al inicio? Tienes un turno activo y deberás cerrarlo antes de finalizar la jornada.')) {
+        navigate('/home');
+      }
+    } else {
+      navigate('/home');
+    }
   };
 
   // Función para guardar las notas del turno
   const handleGuardarNotas = async () => {
-    if (!turnoId) return;
-    
-    setGuardandoNotas(true);
-    setError('');
     try {
-      console.log('Enviando notas:', turnoNotas);
-      
-      // Usamos el endpoint específico para notas
       const resp = await fetch(`/api/turnos/${turnoId}/notas`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          notas: turnoNotas
-        })
+        body: JSON.stringify({ notas: turnoNotas })
       });
       
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({ message: resp.statusText }));
-        throw new Error(data.message || 'Error al guardar las notas');
+        throw new Error('Error al guardar las notas');
       }
       
-      const respData = await resp.json();
-      console.log('Respuesta al guardar notas:', respData);
-      
-      // Actualizamos la información del turno con las notas nuevas
-      setTurnoInfo(prev => ({...prev, notas: turnoNotas}));
-      
-      // Volver a cargar el turno para asegurarnos de que tenemos los datos actualizados
+      // Recargar los datos del turno para mostrar las notas actualizadas
       await fetchTurnoYCarreras();
       
-      setSuccessMessage('Notas guardadas correctamente');
-      setEditandoNotas(false);
-      
-      // Limpiar mensaje después de 3 segundos
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
+      toast.success('Notas guardadas correctamente');
     } catch (err) {
-      console.error('Error guardando notas:', err);
-      setError(err.message || 'Error al guardar las notas. Inténtalo de nuevo más tarde.');
-    } finally {
-      setGuardandoNotas(false);
+      console.error('Error al guardar notas:', err);
+      toast.error('Error al guardar las notas');
     }
   };
 
@@ -839,22 +788,73 @@ export default function CarreraPage() {
                 )}
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-background/30 p-4 rounded-lg border border-border/50 text-center">
-                  <p className="text-text-muted text-sm mb-1">Tiempo Total</p>
-                  <p className="text-xl font-mono">{tiempoTotal}</p>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-lg border border-border">
+                  <h3 className="text-sm text-text-muted mb-1">Tiempo Total</h3>
+                  <p className="text-lg font-medium text-text">{tiempoTotal}</p>
                 </div>
-                
-                <div className="bg-background/30 p-4 rounded-lg border border-border/50 text-center">
-                  <p className="text-text-muted text-sm mb-1">Tiempo Trabajado</p>
-                  <p className="text-xl font-mono text-green-400">{tiempoTrabajado}</p>
+                <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-lg border border-border">
+                  <h3 className="text-sm text-text-muted mb-1">Tiempo Trabajado</h3>
+                  <p className="text-lg font-medium text-text">{tiempoTrabajado}</p>
                 </div>
-                
-                <div className="bg-background/30 p-4 rounded-lg border border-border/50 text-center">
-                  <p className="text-text-muted text-sm mb-1">Tiempo Pausado</p>
-                  <p className="text-xl font-mono text-yellow-400">{tiempoPausado}</p>
+                <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-lg border border-border">
+                  <h3 className="text-sm text-text-muted mb-1">Tiempo Pausado</h3>
+                  <p className="text-lg font-medium text-text">{tiempoPausado}</p>
                 </div>
               </div>
+                </div>
+                
+            {/* Sección de Notas del Turno */}
+            <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-lg border border-border mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium text-text">Notas del Turno</h3>
+                {!editandoNotas && (
+                  <button
+                    onClick={() => setEditandoNotas(true)}
+                    className="text-primary hover:text-primary-dark transition-colors"
+                  >
+                    {turnoNotas ? 'Editar' : 'Añadir notas'}
+                  </button>
+                )}
+                </div>
+                
+              {editandoNotas ? (
+                <div>
+                  <textarea
+                    value={turnoNotas}
+                    onChange={(e) => setTurnoNotas(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary text-text resize-none h-32"
+                    placeholder="Escribe aquí las notas del turno..."
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        setEditandoNotas(false);
+                        setTurnoNotas(turnoInfo?.notas || '');
+                      }}
+                      className="px-3 py-1 text-text-muted hover:text-text transition-colors"
+                      disabled={guardandoNotas}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleGuardarNotas}
+                      className="px-3 py-1 bg-primary hover:bg-primary-dark text-background rounded transition-colors"
+                      disabled={guardandoNotas}
+                    >
+                      {guardandoNotas ? 'Guardando...' : 'Guardar'}
+                    </button>
+                </div>
+              </div>
+              ) : (
+                <div className="bg-background p-3 rounded border border-border min-h-[4rem]">
+                  {turnoNotas ? (
+                    <p className="text-text whitespace-pre-wrap">{turnoNotas}</p>
+                  ) : (
+                    <p className="text-text-muted italic">No hay notas para este turno</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1082,7 +1082,11 @@ export default function CarreraPage() {
                             )}
                           </div>
                           <div className="text-text-muted text-sm">
-                            {new Date(carrera.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(carrera.fecha).toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: false 
+                            })}
                           </div>
                         </div>
                         

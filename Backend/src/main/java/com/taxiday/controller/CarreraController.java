@@ -4,6 +4,8 @@ package com.taxiday.controller;
 import com.taxiday.dto.CarreraDto;
 import com.taxiday.model.Carrera;
 import com.taxiday.service.CarreraService;
+import com.taxiday.model.Turno;
+import com.taxiday.service.TurnoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,15 +14,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.HashMap;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @RestController
 @RequestMapping("/api/carreras")
 public class CarreraController {
 
     private final CarreraService service;
+    private final TurnoService turnoService;
 
-    public CarreraController(CarreraService service) {
+    public CarreraController(CarreraService service, TurnoService turnoService) {
         this.service = service;
+        this.turnoService = turnoService;
     }
     
     // Helper para convertir Carrera a CarreraDto
@@ -148,6 +154,45 @@ public class CarreraController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error al actualizar las notas: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/turno/{turnoId}")
+    public ResponseEntity<?> crearCarreraParaTurno(@PathVariable int turnoId, @RequestBody Map<String, Object> body) {
+        try {
+            // Validar que el turno existe y está activo
+            Optional<Turno> turnoOpt = turnoService.buscarPorId(turnoId);
+            if (!turnoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Turno turno = turnoOpt.get();
+            if (turno.getEstado() == Turno.EstadoTurno.cerrado) {
+                return ResponseEntity.badRequest().body("No se pueden añadir carreras a un turno cerrado");
+            }
+
+            // Obtener zona horaria del request o usar la del sistema por defecto
+            String zonaHoraria = body.get("zonaHoraria") instanceof String ?
+                (String) body.get("zonaHoraria") : ZoneId.systemDefault().getId();
+            
+            ZonedDateTime fechaLocal = ZonedDateTime.now(ZoneId.of(zonaHoraria));
+
+            // Crear la nueva carrera
+            Carrera carrera = new Carrera();
+            carrera.setImporteTotal(((Number) body.get("importeTotal")).doubleValue());
+            carrera.setImporteTaximetro(body.get("importeTaximetro") instanceof Number ?
+                ((Number) body.get("importeTaximetro")).doubleValue() : 0.0);
+            carrera.setTipoPago(Carrera.TipoPago.valueOf(((String) body.get("tipoPago")).toLowerCase()));
+            carrera.setEsAeropuerto((Boolean) body.getOrDefault("esAeropuerto", false));
+            carrera.setEsEmisora((Boolean) body.getOrDefault("esEmisora", false));
+            carrera.setNotas((String) body.getOrDefault("notas", ""));
+            carrera.setFechaInicio(fechaLocal.toLocalDateTime());
+            carrera.setTurno(turno);
+
+            Carrera saved = service.crearCarrera(carrera);
+            return ResponseEntity.status(201).body(saved);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

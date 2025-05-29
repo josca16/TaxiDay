@@ -22,4 +22,12 @@ public interface TurnoService {
      * @return El turno actualizado o null si no existe
      */
     Turno actualizarNotasTurno(int id, String notas);
+
+    /**
+     * Actualiza las notas de un turno
+     * @param id ID del turno
+     * @param notas Las nuevas notas
+     * @return el turno actualizado o null si no existe
+     */
+    Turno actualizarNotas(int id, String notas);
 }

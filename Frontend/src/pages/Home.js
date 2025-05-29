@@ -178,25 +178,45 @@ export default function Home() {
       const resp = await fetch(`/api/jornadas/${jornadaId}/turno-activo`);
       
       if (!resp.ok) {
-        const errorData = await resp.text();
-        console.error("Error en respuesta del servidor:", errorData);
-        // No vamos a lanzar error aquí, simplemente asumir que no hay turno activo
-        console.log("Asumiendo que no hay turno activo para esta jornada");
-        setTurno(null);
-        return;
+        if (resp.status === 404) {
+          console.log("No hay turno activo para esta jornada");
+          setTurno(null);
+          setShowCrearTurnoForm(true);
+          return;
+        }
+
+        // Intentar obtener el mensaje de error del servidor
+        try {
+          const errorData = await resp.json();
+          throw new Error(errorData.message || `Error al obtener turno activo: ${resp.statusText}`);
+        } catch (jsonError) {
+          // Si no podemos parsear el JSON, simplemente ignoramos el error
+          console.log("No se pudo obtener turno activo, continuando...");
+          setTurno(null);
+          setShowCrearTurnoForm(true);
+          return;
+        }
       }
       
-      const data = await resp.json();
-      console.log("Turno activo recibido:", data);
+      let data;
+      try {
+        data = await resp.json();
+      } catch (jsonError) {
+        console.log("Error al parsear respuesta del turno activo, continuando...");
+        setTurno(null);
+        setShowCrearTurnoForm(true);
+        return;
+      }
+
+      console.log("Respuesta del turno activo:", data);
       
-      // Verificar si es un turno válido
       if (!data || !data.idTurno) {
         console.log("No se encontró un turno activo válido");
         setTurno(null);
+        setShowCrearTurnoForm(true);
         return;
       }
       
-      // Verificar explícitamente si existen carreras y garantizar que sea un array
       if (!data.carreras) {
         data.carreras = [];
       } else if (!Array.isArray(data.carreras)) {
@@ -204,10 +224,12 @@ export default function Home() {
       }
       
       setTurno(data);
+      setShowCrearTurnoForm(false);
     } catch (err) {
       console.error("Error al obtener turno activo:", err);
-      setError("Error al cargar turno activo. Puede continuar trabajando.");
+      // No mostrar el error al usuario
       setTurno(null);
+      setShowCrearTurnoForm(true);
     }
   };
 
@@ -224,7 +246,10 @@ export default function Home() {
         const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fechaFinal: new Date().toISOString() })
+          body: JSON.stringify({ 
+            fechaFinal: new Date().toISOString(),
+            zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+          })
         });
 
         if (!closeResp.ok) {
@@ -235,7 +260,7 @@ export default function Home() {
         setTurno(null);
       } catch (err) {
         setError(err.message);
-      return;
+        setTimeout(() => setError(''), 2000);
       }
     }
 
@@ -277,6 +302,7 @@ export default function Home() {
       }, 100);
     } catch (err) {
       setError(err.message);
+      setTimeout(() => setError(''), 2000);
     }
   };
 
@@ -313,6 +339,7 @@ export default function Home() {
       navigate(`/jornada/${activeJornadaId}/turno/${newTurno.idTurno}/carrera`);
     } catch (err) {
       setError(err.message || 'Ocurrió un error al crear el turno.');
+      setTimeout(() => setError(''), 2000);
     }
   };
 
@@ -364,7 +391,7 @@ export default function Home() {
       
       // Mostrar mensaje de éxito
       setSuccessMessage('Turno cerrado correctamente');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccessMessage(''), 2000);
       
       // Mostrar formulario para crear nuevo turno
       setShowCrearTurnoForm(true);
@@ -376,6 +403,7 @@ export default function Home() {
       }, 100);
     } catch (err) {
       setError(err.message);
+      setTimeout(() => setError(''), 2000);
     }
   };
 
@@ -456,11 +484,12 @@ export default function Home() {
       
       // Mostrar mensaje de éxito
       setSuccessMessage('Carrera registrada correctamente');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccessMessage(''), 2000);
       
     } catch (err) {
       console.error("Error al crear carrera:", err);
       setError(err.message);
+      setTimeout(() => setError(''), 2000);
     }
   };
 
@@ -573,20 +602,44 @@ export default function Home() {
     
     return (
       <div className="flex flex-col gap-6 mt-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
-        {jornadasDelDia.map(j => (
-          <div key={j.idJornada} className="bg-surface rounded-2xl p-6 border border-border shadow flex flex-col gap-2">
-            <div className="font-bold text-primary text-lg mb-1">Jornada #{j.idJornada} ({j.estado})</div>
-            <div className="text-sm text-text-muted mb-1">Inicio: {new Date(j.fechaInicio).toLocaleString()}</div>
-            <div className="text-sm text-text-muted mb-1">Final: {j.fechaFinal ? new Date(j.fechaFinal).toLocaleString() : '—'}</div>
+        {jornadasDelDia.map(jornada => (
+          <div key={jornada.idJornada} className="bg-surface rounded-2xl p-6 border border-border shadow flex flex-col gap-2">
+            <div className="font-bold text-primary text-lg mb-1">Jornada #{jornada.idJornada} ({jornada.estado})</div>
+            <div className="text-sm text-text-muted mb-1">
+              Inicio: {new Date(jornada.fechaInicio).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
+            </div>
+            <div className="text-sm text-text-muted mb-1">
+              Final: {jornada.fechaFinal ? new Date(jornada.fechaFinal).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }) : '—'}
+            </div>
             <div className="font-semibold text-primary mt-2 mb-1">Turnos:</div>
-            {j.turnos && j.turnos.length > 0 ? (
+            {jornada.turnos && jornada.turnos.length > 0 ? (
               <ul className="flex flex-col gap-2">
-                {j.turnos.map(t => (
+                {jornada.turnos.map(t => (
                   <li key={t.idTurno} className="bg-background rounded-xl p-4 border border-border shadow flex flex-col gap-1">
                     <div className="font-semibold text-text">Turno #{t.idTurno}</div>
                     <div className="text-xs text-text-muted">KM Inicial: {t.kmInicial} | KM Final: {t.kmFinal ?? '—'}</div>
-                    <div className="text-xs text-text-muted">Inicio: {new Date(t.fechaInicio).toLocaleString()}</div>
-                    <div className="text-xs text-text-muted">Final: {t.fechaFinal ? new Date(t.fechaFinal).toLocaleString() : '—'}</div>
+                    <div className="text-xs text-text-muted">
+                      Inicio: {new Date(t.fechaInicio).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      })}
+                    </div>
+                    <div className="text-xs text-text-muted">
+                      Final: {t.fechaFinal ? new Date(t.fechaFinal).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      }) : '—'}
+                    </div>
                     <div className="font-semibold text-primary mt-2 mb-1">Carreras:</div>
                     {t.carreras && t.carreras.length > 0 ? (
                       <ul className="flex flex-col gap-1">
@@ -631,11 +684,23 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-4 text-sm mb-4">
         <div>
             <p className="text-text-muted">Inicio</p>
-            <p className="font-medium">{jornada.fechaInicio ? new Date(jornada.fechaInicio).toLocaleTimeString() : 'N/A'}</p>
+            <p className="font-medium">
+              {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
+            </p>
           </div>
           <div>
             <p className="text-text-muted">Fin</p>
-            <p className="font-medium">{jornada.fechaFinal ? new Date(jornada.fechaFinal).toLocaleTimeString() : 'En curso'}</p>
+            <p className="font-medium">
+              {jornada.fechaFinal ? new Date(jornada.fechaFinal).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }) : 'En curso'}
+            </p>
           </div>
           <div>
             <p className="text-text-muted">Turnos</p>
@@ -653,8 +718,9 @@ export default function Home() {
             </button>
           )}
           <button
-            onClick={() => handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
-            className={`${jornada.estado?.toLowerCase() === 'activa' ? '' : 'flex-1'} bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
+            onClick={() => handleVerDetalles(jornada.idJornada)}
+            className={`${jornada.estado?.toLowerCase() === 'activa' ? 'flex-1' : 'w-full'} 
+              bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
           >
             Ver Detalles
           </button>
@@ -736,8 +802,7 @@ export default function Home() {
   }, [selectedDate, jornadas]);
 
   // Add a function to handle 'Ver Detalles' button click
-  const handleVerDetalles = (turnoId, jornadaId) => {
-    setSelectedTurnoId(turnoId);
+  const handleVerDetalles = (jornadaId) => {
     setSelectedJornadaId(jornadaId);
     setDetallesModalOpen(true);
   };
@@ -761,7 +826,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-          </div>
+            </div>
             <h1 className="text-2xl font-bold text-primary">TaxiDay</h1>
           </div>
           
@@ -802,7 +867,7 @@ export default function Home() {
           <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-xl border border-border shadow-lg flex items-center space-x-3">
             <div className="bg-primary/20 p-2 rounded-lg">
               {icons[0]}
-          </div>
+            </div>
             <div>
               <p className="text-2xl font-bold text-primary">{stats.totalJornadas}</p>
               <p className="text-text-muted text-xs">Jornadas</p>
@@ -812,7 +877,7 @@ export default function Home() {
           <div className="bg-surface/70 backdrop-blur-sm p-4 rounded-xl border border-border shadow-lg flex items-center space-x-3">
             <div className="bg-primary/20 p-2 rounded-lg">
               {icons[1]}
-              </div>
+            </div>
             <div>
               <p className="text-2xl font-bold text-primary">{stats.totalCarreras}</p>
               <p className="text-text-muted text-xs">Carreras</p>
@@ -860,7 +925,11 @@ export default function Home() {
                         <div className="flex flex-col gap-3">
                           <div className="flex justify-between items-center mb-2">
                             <h4 className="font-semibold text-primary">Turno #{turno.idTurno}</h4>
-                            <span className="text-sm text-text-muted">Inicio: {new Date(turno.fechaInicio).toLocaleTimeString()}</span>
+                            <span className="text-sm text-text-muted">Inicio: {new Date(turno.fechaInicio).toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: false 
+                            })}</span>
                           </div>
                           <div className="flex items-center gap-4 mb-4">
                             <div className="flex-1">
@@ -914,10 +983,21 @@ export default function Home() {
                         onClick={async () => {
                           if (window.confirm('¿Estás seguro de que deseas cerrar esta jornada? Esta acción no se puede deshacer.')) {
                             try {
+                              // Verificar si hay un turno activo
+                              const turnoActivo = jornadas.find(j => j.idJornada === activeJornadaId)?.turnos?.find(t => t.estado?.toLowerCase() === 'abierto');
+                              
+                              if (turnoActivo) {
+                                setError('No puedes cerrar la jornada mientras tengas un turno activo. Por favor, cierra el turno primero.');
+                                return;
+                              }
+
                               const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ fechaFinal: new Date().toISOString() })
+                                body: JSON.stringify({ 
+                                  fechaFinal: new Date().toISOString(),
+                                  zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                })
                               });
                               
                               if (!closeResp.ok) {
@@ -940,6 +1020,7 @@ export default function Home() {
                               setJornadas(updatedJornadas);
                             } catch (err) {
                               setError(err.message);
+                              setTimeout(() => setError(''), 2000);
                             }
                           }
                         }}
@@ -994,10 +1075,21 @@ export default function Home() {
                         onClick={async () => {
                           if (window.confirm('¿Estás seguro de que deseas cerrar esta jornada? Esta acción no se puede deshacer.')) {
                             try {
+                              // Verificar si hay un turno activo
+                              const turnoActivo = jornadas.find(j => j.idJornada === activeJornadaId)?.turnos?.find(t => t.estado?.toLowerCase() === 'abierto');
+                              
+                              if (turnoActivo) {
+                                setError('No puedes cerrar la jornada mientras tengas un turno activo. Por favor, cierra el turno primero.');
+                                return;
+                              }
+
                               const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ fechaFinal: new Date().toISOString() })
+                                body: JSON.stringify({ 
+                                  fechaFinal: new Date().toISOString(),
+                                  zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                })
                               });
                               
                               if (!closeResp.ok) {
@@ -1020,6 +1112,7 @@ export default function Home() {
                               setJornadas(updatedJornadas);
                             } catch (err) {
                               setError(err.message);
+                              setTimeout(() => setError(''), 2000);
                             }
                           }
                         }}
@@ -1216,7 +1309,11 @@ export default function Home() {
                                     )}
                                   </div>
                                   <div className="text-text-muted text-sm">
-                                    {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleTimeString('es-ES', { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit',
+                                      hour12: false 
+                                    })}
                                   </div>
                                 </div>
                                 
@@ -1253,7 +1350,7 @@ export default function Home() {
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
+                                    onClick={() => handleVerDetalles(jornada.idJornada)}
                                     className={`${jornada.estado?.toLowerCase() === 'activa' ? 'flex-1' : 'w-full'} 
                                       bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm`}
                                   >
@@ -1317,7 +1414,7 @@ export default function Home() {
                           <button
                             onClick={() => jornada.estado?.toLowerCase() === 'activa' 
                               ? handleContinueJornadaClick(jornada.idJornada) 
-                              : handleVerDetalles(jornada.turnos?.[0]?.idTurno, jornada.idJornada)}
+                              : handleVerDetalles(jornada.idJornada)}
                             className={`w-full font-medium px-4 py-2 rounded-lg transition-colors shadow-sm text-sm ${
                               jornada.estado?.toLowerCase() === 'activa' 
                                 ? 'bg-primary hover:bg-primary-dark text-gray-900' 

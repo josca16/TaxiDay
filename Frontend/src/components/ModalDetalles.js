@@ -1,412 +1,408 @@
 import React, { useState, useEffect } from 'react';
 
-const ModalDetalles = ({ isOpen, onClose, turnoId, jornadaId }) => {
+const ModalDetalles = ({ isOpen, onClose, jornadaId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [turnoInfo, setTurnoInfo] = useState(null);
-  const [carreras, setCarreras] = useState([]);
-  const [estadisticas, setEstadisticas] = useState({
-    tiempoTotal: '00:00:00',
-    tiempoTrabajado: '00:00:00',
-    tiempoPausado: '00:00:00'
-  });
+  const [jornadaInfo, setJornadaInfo] = useState(null);
   const [activeTab, setActiveTab] = useState('info');
+  const [estadisticasTurnos, setEstadisticasTurnos] = useState({});
 
   useEffect(() => {
-    if (isOpen && turnoId) {
+    if (isOpen && jornadaId) {
       cargarDatos();
     }
-  }, [isOpen, turnoId]);
+  }, [isOpen, jornadaId]);
 
   const cargarDatos = async () => {
-    setLoading(true);
     try {
-      // Cargar información del turno
-      const respTurno = await fetch(`/api/turnos/${turnoId}`);
-      if (!respTurno.ok) throw new Error('Error al cargar datos del turno');
-      const dataTurno = await respTurno.json();
-      console.log('Datos del turno recibidos en ModalDetalles:', dataTurno);
-      console.log('Notas del turno:', dataTurno.notas);
-      setTurnoInfo(dataTurno);
+      const resp = await fetch(`/api/jornadas/${jornadaId}`);
+      if (!resp.ok) throw new Error('Error al cargar datos de la jornada');
+      const data = await resp.json();
+      console.log('Datos completos de la jornada:', data);
+      
+      // Verificar específicamente las notas de los turnos
+      if (data.turnos) {
+        data.turnos.forEach(turno => {
+          console.log(`Turno #${turno.idTurno} - Notas:`, turno.notas);
+        });
+      }
+      
+      setJornadaInfo(data);
 
-      // Cargar carreras del turno
-      const respCarreras = await fetch(`/api/turnos/${turnoId}/carreras`);
-      if (respCarreras.ok) {
-        const dataCarreras = await respCarreras.json();
-        setCarreras(Array.isArray(dataCarreras) ? dataCarreras : []);
-      } else {
-        setCarreras([]);
+      // Cargar estadísticas para cada turno
+      if (data.turnos && data.turnos.length > 0) {
+        const estadisticas = {};
+        for (const turno of data.turnos) {
+          try {
+            const respEst = await fetch(`/api/turnos/${turno.idTurno}/estadisticas`);
+            if (respEst.ok) {
+              const dataEst = await respEst.json();
+              estadisticas[turno.idTurno] = dataEst;
+            }
+          } catch (err) {
+            console.error(`Error al cargar estadísticas del turno ${turno.idTurno}:`, err);
+          }
+        }
+        setEstadisticasTurnos(estadisticas);
       }
 
-      // Cargar estadísticas de tiempo
-      const respStats = await fetch(`/api/turnos/${turnoId}/estadisticas`);
-      if (respStats.ok) {
-        const statsData = await respStats.json();
-        setEstadisticas(statsData);
-      }
+      setLoading(false);
     } catch (err) {
-      console.error('Error cargando datos:', err);
-      setError('Error al cargar la información. Por favor, inténtalo de nuevo.');
-    } finally {
+      setError(err.message);
       setLoading(false);
     }
   };
 
-  const calcularTotalRecaudacion = () => {
-    return carreras.reduce((total, carrera) => total + (parseFloat(carrera.importeTotal) || 0), 0);
-  };
-
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'No registrada';
-    return new Date(fecha).toLocaleString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const calcularDistancia = () => {
-    if (!turnoInfo || !turnoInfo.kmInicial || !turnoInfo.kmFinal) return 'N/A';
-    const distancia = turnoInfo.kmFinal - turnoInfo.kmInicial;
-    return distancia.toFixed(1) + ' km';
-  };
-
-  // Contenido del modal
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="bg-red-800/40 border border-red-700/50 text-red-200 px-6 py-4 rounded-lg text-sm">
-          {error}
-        </div>
-      );
-    }
-
-    if (!turnoInfo) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-text-muted">No se encontró información del turno</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {/* Pestañas de navegación */}
-        <div className="flex border-b border-border">
-          <button
-            className={`px-4 py-2 border-b-2 ${activeTab === 'info' 
-              ? 'border-primary text-primary font-medium' 
-              : 'border-transparent text-text-muted hover:text-text'}`}
-            onClick={() => setActiveTab('info')}
-          >
-            Información General
-          </button>
-          <button
-            className={`px-4 py-2 border-b-2 ${activeTab === 'estadisticas' 
-              ? 'border-primary text-primary font-medium' 
-              : 'border-transparent text-text-muted hover:text-text'}`}
-            onClick={() => setActiveTab('estadisticas')}
-          >
-            Estadísticas
-          </button>
-          <button
-            className={`px-4 py-2 border-b-2 ${activeTab === 'carreras' 
-              ? 'border-primary text-primary font-medium' 
-              : 'border-transparent text-text-muted hover:text-text'}`}
-            onClick={() => setActiveTab('carreras')}
-          >
-            Carreras ({carreras.length})
-          </button>
-        </div>
-
-        {/* Contenido de la pestaña seleccionada */}
-        {activeTab === 'info' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">ID del Turno</p>
-                <p className="font-medium">{turnoInfo.idTurno}</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Estado</p>
-                <p className="font-medium">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-sm ${
-                    turnoInfo.estado === 'cerrado' 
-                      ? 'bg-gray-700/30 text-gray-400 border border-gray-700/40' 
-                      : 'bg-green-900/30 text-green-400 border border-green-800/40'
-                  }`}>
-                    {turnoInfo.estado || 'Sin datos'}
-                  </span>
-                </p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Estado Pausa</p>
-                <p className="font-medium">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-sm ${
-                    turnoInfo.estadoPausa === 'pausado' 
-                      ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/40' 
-                      : 'bg-green-900/30 text-green-400 border border-green-800/40'
-                  }`}>
-                    {turnoInfo.estadoPausa || 'activo'}
-                  </span>
-                </p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Fecha Inicio</p>
-                <p className="font-medium">{formatearFecha(turnoInfo.fechaInicio)}</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Fecha Fin</p>
-                <p className="font-medium">{formatearFecha(turnoInfo.fechaFinal)}</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Recaudación Total</p>
-                <p className="font-bold text-primary text-lg">{calcularTotalRecaudacion().toFixed(2)}€</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">KM Iniciales</p>
-                <p className="font-medium">{turnoInfo.kmInicial || 'No registrado'}</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">KM Finales</p>
-                <p className="font-medium">{turnoInfo.kmFinal || 'No registrado'}</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-                <p className="text-text-muted text-sm mb-1">Distancia</p>
-                <p className="font-medium">{calcularDistancia()}</p>
-              </div>
-            </div>
-
-            {/* Notas del turno */}
-            <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-              <h3 className="text-lg font-semibold mb-2">Notas</h3>
-              {turnoInfo.notas && turnoInfo.notas.trim() !== '' ? (
-                <div className="whitespace-pre-wrap bg-background/50 p-3 rounded border border-border/60 text-text">
-                  {turnoInfo.notas}
-                </div>
-              ) : (
-                <p className="text-text-muted text-sm italic bg-background/30 p-3 rounded">
-                  No hay notas para este turno
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'estadisticas' && (
-          <div className="space-y-6">
-            {/* Estadísticas de tiempo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Tiempo Total</p>
-                <p className="text-xl font-mono">{estadisticas.tiempoTotal}</p>
-              </div>
-              
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Tiempo Trabajado</p>
-                <p className="text-xl font-mono text-green-400">{estadisticas.tiempoTrabajado}</p>
-              </div>
-              
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Tiempo Pausado</p>
-                <p className="text-xl font-mono text-yellow-400">{estadisticas.tiempoPausado}</p>
-              </div>
-            </div>
-
-            {/* Información adicional */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Total Carreras</p>
-                <p className="text-xl font-bold">{carreras.length}</p>
-              </div>
-              
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Recaudación</p>
-                <p className="text-xl font-bold text-primary">{calcularTotalRecaudacion().toFixed(2)}€</p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Promedio por Carrera</p>
-                <p className="text-xl font-bold">
-                  {carreras.length > 0 
-                    ? (calcularTotalRecaudacion() / carreras.length).toFixed(2) 
-                    : '0.00'}€
-                </p>
-              </div>
-
-              <div className="bg-background/40 p-4 rounded-lg border border-border/50 text-center">
-                <p className="text-text-muted text-sm mb-1">Promedio por Hora</p>
-                <p className="text-xl font-bold">
-                  {estadisticas.segundosTrabajados > 0
-                    ? ((calcularTotalRecaudacion() / estadisticas.segundosTrabajados) * 3600).toFixed(2)
-                    : '0.00'}€
-                </p>
-              </div>
-            </div>
-
-            {/* Gráfico o visualización */}
-            <div className="bg-background/40 p-4 rounded-lg border border-border/50">
-              <h3 className="text-lg font-semibold mb-2">Distribución de Tiempo</h3>
-              <div className="h-8 w-full bg-background/50 rounded-full overflow-hidden">
-                {estadisticas.segundosTotales > 0 && (
-                  <>
-                    <div 
-                      className="h-full bg-green-500" 
-                      style={{ 
-                        width: `${(estadisticas.segundosTrabajados / estadisticas.segundosTotales) * 100}%`,
-                        float: 'left'
-                      }} 
-                      title={`Tiempo trabajado: ${estadisticas.tiempoTrabajado}`}
-                    />
-                    <div 
-                      className="h-full bg-yellow-500" 
-                      style={{ 
-                        width: `${(estadisticas.segundosPausados / estadisticas.segundosTotales) * 100}%`,
-                        float: 'left'
-                      }}
-                      title={`Tiempo pausado: ${estadisticas.tiempoPausado}`}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="flex justify-between mt-2 text-sm text-text-muted">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-                  <span>Trabajado</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                  <span>Pausado</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'carreras' && (
-          <div className="space-y-4">
-            {carreras.length > 0 ? (
-              carreras.map((carrera, index) => (
-                <div key={carrera.idCarrera || index} className="bg-background/40 p-4 rounded-lg border border-border/50">
-                  <div className="flex justify-between mb-2">
-                    <div className="font-medium flex items-center">
-                      <span>Carrera #{index + 1}</span>
-                      
-                      {/* Iconos para aeropuerto y emisora */}
-                      {carrera.esAeropuerto && (
-                        <span className="ml-2 text-primary" title="Aeropuerto">
-                          <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                          </svg>
-                        </span>
-                      )}
-                      
-                      {carrera.esEmisora && (
-                        <span className="ml-1 text-primary" title="Emisora">
-                          <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-text-muted text-sm">
-                      {new Date(carrera.fechaInicio).toLocaleTimeString()}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-2">
-                    <div>
-                      <p className="text-text-muted">Total</p>
-                      <p className="font-bold text-primary text-lg">{parseFloat(carrera.importeTotal).toFixed(2)}€</p>
-                    </div>
-                    <div>
-                      <p className="text-text-muted">Taxímetro</p>
-                      <p className="font-medium">{parseFloat(carrera.importeTaximetro || 0).toFixed(2)}€</p>
-                    </div>
-                    <div>
-                      <p className="text-text-muted">Propina</p>
-                      <p className="font-medium text-green-500">{parseFloat(carrera.propina || (carrera.importeTotal - (carrera.importeTaximetro || 0))).toFixed(2)}€</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm mt-3">
-                    <div>
-                      <span className="text-text-muted mr-1">Tipo de Pago:</span>
-                      <span className="capitalize">{carrera.tipoPago}</span>
-                    </div>
-                  </div>
-                  
-                  {carrera.notas && carrera.notas.trim() !== '' && (
-                    <div className="mt-2 pt-2 border-t border-border/50">
-                      <p className="text-text-muted text-sm">Notas:</p>
-                      <p className="text-sm whitespace-pre-wrap">{carrera.notas}</p>
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <svg className="w-16 h-16 text-text-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <h3 className="text-xl font-semibold mb-2">No hay carreras registradas</h3>
-                <p className="text-text-muted">Este turno no tiene carreras registradas.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   if (!isOpen) return null;
 
+  const formatearFecha = (fecha) => {
+    if (!fecha) return '-';
+    return new Date(fecha).toLocaleString();
+  };
+
+  const calcularTotalCarreras = (turnos) => {
+    return turnos.reduce((total, turno) => {
+      return total + (turno.carreras ? turno.carreras.reduce((sum, carrera) => sum + parseFloat(carrera.importeTotal), 0) : 0);
+    }, 0);
+  };
+
+  const calcularTotalTiempo = (turnos) => {
+    let tiempoTotal = 0;
+    let tiempoTrabajado = 0;
+    let tiempoPausado = 0;
+
+    turnos.forEach(turno => {
+      const stats = estadisticasTurnos[turno.idTurno];
+      if (stats) {
+        const convertirASegundos = (tiempo) => {
+          const [horas, minutos, segundos] = tiempo.split(':').map(Number);
+          return horas * 3600 + minutos * 60 + segundos;
+        };
+
+        tiempoTotal += convertirASegundos(stats.tiempoTotal || '00:00:00');
+        tiempoTrabajado += convertirASegundos(stats.tiempoTrabajado || '00:00:00');
+        tiempoPausado += convertirASegundos(stats.tiempoPausado || '00:00:00');
+      }
+    });
+
+    const formatearTiempo = (segundos) => {
+      const horas = Math.floor(segundos / 3600);
+      const minutos = Math.floor((segundos % 3600) / 60);
+      const segs = segundos % 60;
+      return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segs).padStart(2, '0')}`;
+    };
+
+    return {
+      total: formatearTiempo(tiempoTotal),
+      trabajado: formatearTiempo(tiempoTrabajado),
+      pausado: formatearTiempo(tiempoPausado)
+    };
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-surface rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-fade-in">
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center sticky top-0 bg-surface z-10">
-          <h2 className="text-xl font-bold text-primary">
-            Detalles del Turno {turnoInfo?.idTurno || ''}
-          </h2>
-          <button 
-            onClick={onClose}
-            className="text-text-muted hover:text-text p-2 rounded-full"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-70px)]">
-          {renderContent()}
-        </div>
-        
-        <div className="px-6 py-4 border-t border-border flex justify-end sticky bottom-0 bg-surface">
-        <button
-          onClick={onClose}
-            className="bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
-        >
-            Cerrar
-        </button>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-start justify-center overflow-y-auto">
+      <div className="w-full flex items-start justify-center p-4">
+        <div className="bg-surface rounded-xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden border border-border">
+          {/* Header - Sticky */}
+          <div className="sticky top-0 px-6 py-4 border-b border-border bg-surface flex justify-between items-center z-10">
+            <div className="flex items-center space-x-3">
+              <div className="bg-primary p-2 rounded-lg">
+                <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">
+                Detalles de la Jornada #{jornadaInfo?.idJornada}
+              </h2>
+            </div>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-surface-darker rounded-lg"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="mt-4 text-gray-400">Cargando detalles...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="bg-red-900/30 text-red-400 p-4 rounded-lg border border-red-800/40 inline-block">
+                <p>{error}</p>
+              </div>
+            </div>
+          ) : jornadaInfo ? (
+            <>
+              {/* Tabs */}
+              <div className="sticky top-[73px] flex space-x-2 px-6 py-4 border-b border-border bg-surface z-[5]">
+                <button
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2
+                    ${activeTab === 'info'
+                      ? 'bg-primary text-gray-900 shadow-lg'
+                      : 'bg-surface hover:bg-surface-darker text-gray-300 hover:text-white'}`}
+                  onClick={() => setActiveTab('info')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Información General</span>
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2
+                    ${activeTab === 'turnos'
+                      ? 'bg-primary text-gray-900 shadow-lg'
+                      : 'bg-surface hover:bg-surface-darker text-gray-300 hover:text-white'}`}
+                  onClick={() => setActiveTab('turnos')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Turnos</span>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                {activeTab === 'info' ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="bg-surface/30 backdrop-blur-sm p-6 rounded-xl border border-border/50 shadow-lg">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-primary/20 p-2 rounded-lg">
+                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-semibold text-primary">Información Básica</h3>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Estado:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm ${
+                              jornadaInfo.estado?.toLowerCase() === 'cerrada'
+                                ? 'bg-red-900/30 text-red-400 border border-red-800/40'
+                                : 'bg-green-900/30 text-green-400 border border-green-800/40'
+                            }`}>
+                              {jornadaInfo.estado}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Inicio:</span>
+                            <span className="font-medium">{formatearFecha(jornadaInfo.fechaInicio)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Fin:</span>
+                            <span className="font-medium">{formatearFecha(jornadaInfo.fechaFinal)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-surface/30 backdrop-blur-sm p-6 rounded-xl border border-border/50 shadow-lg">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="bg-primary/20 p-2 rounded-lg">
+                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-semibold text-primary">Estadísticas</h3>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Total Turnos:</span>
+                            <span className="font-medium text-lg">{jornadaInfo.turnos?.length || 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Total Carreras:</span>
+                            <span className="font-medium text-lg">{jornadaInfo.turnos?.reduce((sum, t) => sum + (t.carreras?.length || 0), 0) || 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-text-muted">Recaudación Total:</span>
+                            <span className="font-bold text-xl text-primary">{calcularTotalCarreras(jornadaInfo.turnos || []).toFixed(2)}€</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {jornadaInfo.turnos && jornadaInfo.turnos.length > 0 && (
+                      <div className="bg-surface/30 backdrop-blur-sm p-6 rounded-xl border border-border/50 shadow-lg">
+                        <div className="flex items-center space-x-3 mb-6">
+                          <div className="bg-primary/20 p-2 rounded-lg">
+                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-semibold text-primary">Tiempo Total de la Jornada</h3>
+                        </div>
+                        <div className="grid grid-cols-3 gap-6">
+                          <div className="bg-background/30 p-4 rounded-lg border border-border/50">
+                            <p className="text-text-muted mb-2">Tiempo Total</p>
+                            <p className="text-2xl font-bold text-primary">{calcularTotalTiempo(jornadaInfo.turnos).total}</p>
+                          </div>
+                          <div className="bg-background/30 p-4 rounded-lg border border-border/50">
+                            <p className="text-text-muted mb-2">Tiempo Trabajado</p>
+                            <p className="text-2xl font-bold text-green-400">{calcularTotalTiempo(jornadaInfo.turnos).trabajado}</p>
+                          </div>
+                          <div className="bg-background/30 p-4 rounded-lg border border-border/50">
+                            <p className="text-text-muted mb-2">Tiempo Pausado</p>
+                            <p className="text-2xl font-bold text-yellow-400">{calcularTotalTiempo(jornadaInfo.turnos).pausado}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {jornadaInfo.turnos?.map((turno, index) => (
+                      <div key={turno.idTurno} className="bg-surface-dark rounded-xl border border-border shadow-lg overflow-hidden">
+                        <div className="p-6">
+                          <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-primary p-2 rounded-lg">
+                                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <h3 className="text-lg font-semibold text-white">Turno #{turno.idTurno}</h3>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm ${
+                              turno.estado?.toLowerCase() === 'cerrado'
+                                ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                                : 'bg-green-500/20 text-green-400 border border-green-500/40'
+                            }`}>
+                              {turno.estado}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div className="bg-surface p-4 rounded-lg border border-border">
+                              <p className="text-gray-400 text-sm mb-1">Inicio</p>
+                              <p className="text-white">{formatearFecha(turno.fechaInicio)}</p>
+                            </div>
+                            <div className="bg-surface p-4 rounded-lg border border-border">
+                              <p className="text-gray-400 text-sm mb-1">Fin</p>
+                              <p className="text-white">{formatearFecha(turno.fechaFinal)}</p>
+                            </div>
+                            <div className="bg-surface p-4 rounded-lg border border-border">
+                              <p className="text-gray-400 text-sm mb-1">KM Inicial</p>
+                              <p className="text-white">{turno.kmInicial}</p>
+                            </div>
+                            <div className="bg-surface p-4 rounded-lg border border-border">
+                              <p className="text-gray-400 text-sm mb-1">KM Final</p>
+                              <p className="text-white">{turno.kmFinal || '-'}</p>
+                            </div>
+                            <div className="bg-surface p-4 rounded-lg border border-border col-span-2">
+                              <p className="text-gray-400 text-sm mb-1">KM Recorridos</p>
+                              <p className="text-white">{turno.kmFinal ? (turno.kmFinal - turno.kmInicial).toFixed(1) : '-'} km</p>
+                            </div>
+                          </div>
+
+                          {/* Sección de Notas */}
+                          <div className="bg-surface p-4 rounded-lg border border-border mb-6">
+                            <h4 className="font-medium mb-4 flex items-center space-x-2 text-white">
+                              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              <span>Notas del Turno</span>
+                            </h4>
+                            <div className="bg-surface-dark p-4 rounded-lg border border-border">
+                              {turno.notas ? (
+                                <p className="text-gray-300 whitespace-pre-wrap">{turno.notas}</p>
+                              ) : (
+                                <p className="text-gray-500 italic">Sin notas</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Carreras */}
+                          <div>
+                            <h4 className="font-medium mb-4 flex items-center space-x-2 text-white">
+                              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                              <span>Carreras</span>
+                            </h4>
+                            {turno.carreras && turno.carreras.length > 0 ? (
+                              <div className="space-y-3">
+                                {turno.carreras.map((carrera, carreraIndex) => (
+                                  <div key={carrera.idCarrera} className="bg-surface p-4 rounded-lg border border-border hover:bg-surface-darker transition-colors">
+                                    <div className="flex justify-between items-center mb-3">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="bg-primary/20 px-2 py-1 rounded text-sm font-medium text-primary">
+                                          Carrera #{carreraIndex + 1}
+                                        </span>
+                                        {carrera.esAeropuerto && (
+                                          <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-sm border border-blue-500/40">
+                                            Aeropuerto
+                                          </span>
+                                        )}
+                                        {carrera.esEmisora && (
+                                          <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-sm border border-purple-500/40">
+                                            Emisora
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                      <div className="bg-surface-dark p-3 rounded border border-border">
+                                        <span className="text-gray-400 text-sm">Hora</span>
+                                        <p className="text-white font-medium">
+                                          {carrera.fechaInicio ? new Date(carrera.fechaInicio).toLocaleTimeString() : '-'}
+                                        </p>
+                                      </div>
+                                      <div className="bg-surface-dark p-3 rounded border border-border">
+                                        <span className="text-gray-400 text-sm">Tipo Pago</span>
+                                        <p className="text-white font-medium capitalize">{carrera.tipoPago}</p>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="bg-surface-dark p-3 rounded border border-border">
+                                        <span className="text-gray-400 text-sm">Total</span>
+                                        <p className="text-lg font-semibold text-primary">
+                                          {parseFloat(carrera.importeTotal).toFixed(2)}€
+                                        </p>
+                                      </div>
+                                      {carrera.importeTaximetro && (
+                                        <div className="bg-surface-dark p-3 rounded border border-border">
+                                          <span className="text-gray-400 text-sm">Taxímetro</span>
+                                          <p className="text-white font-medium">
+                                            {parseFloat(carrera.importeTaximetro).toFixed(2)}€
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {carrera.notas && (
+                                      <div className="mt-3 pt-3 border-t border-border">
+                                        <span className="text-gray-400 text-sm">Notas:</span>
+                                        <p className="text-gray-300 text-sm mt-1 bg-surface-dark p-2 rounded">
+                                          {carrera.notas}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 bg-surface-dark rounded-lg border border-border">
+                                <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <p className="text-gray-500">No hay carreras registradas</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

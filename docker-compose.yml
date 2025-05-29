@@ -11,7 +11,9 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - type: bind
+        source: ${PWD}/init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
 
   adminer:
     image: adminer
