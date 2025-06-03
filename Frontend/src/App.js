@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/autenticacion/LoginPage';
+import RegisterPage from './pages/autenticacion/RegisterPage';
 import Home from './pages/Home';
 import CarreraPage from './pages/CarreraPage';
 import { useAuth } from './context/AuthContext';
-import AuthPage from './pages/AuthPage';
-import './App.css';
+import AuthPage from './pages/autenticacion/AuthPage';
+import './styles/App.css';
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }) {
