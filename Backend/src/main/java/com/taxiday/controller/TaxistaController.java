@@ -4,6 +4,7 @@ package com.taxiday.controller;
 import com.taxiday.dto.TaxistaDto;
 import com.taxiday.model.Taxista;
 import com.taxiday.service.TaxistaService;
+import com.taxiday.util.DtoConverter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,71 +25,17 @@ public class TaxistaController {
         this.service = service;
     }
 
-    // Helper para convertir Taxista a TaxistaDto
-    private TaxistaDto convertToDto(Taxista taxista) {
-        if (taxista == null) return null;
-        TaxistaDto taxistaDto = new TaxistaDto();
-        taxistaDto.setIdTaxista(taxista.getIdTaxista());
-        taxistaDto.setNombre(taxista.getNombre());
-        taxistaDto.setApellidos(taxista.getApellidos());
-        taxistaDto.setLicencia(taxista.getLicencia());
-        taxistaDto.setEmail(taxista.getEmail());
-        taxistaDto.setTelefono(taxista.getTelefono());
-        return taxistaDto;
-    }
-    
-     // Helper para convertir TaxistaDto a Taxista
-    private Taxista convertToEntity(TaxistaDto taxistaDto) {
-         if (taxistaDto == null) return null;
-         Taxista taxista = new Taxista();
-         taxista.setIdTaxista(taxistaDto.getIdTaxista());
-         taxista.setNombre(taxistaDto.getNombre());
-         taxista.setApellidos(taxistaDto.getApellidos());
-         taxista.setLicencia(taxistaDto.getLicencia());
-         taxista.setEmail(taxistaDto.getEmail());
-         taxista.setTelefono(taxistaDto.getTelefono());
-         taxista.setContrasena(taxistaDto.getContrasena());
-         return taxista;
-    }
-
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody TaxistaDto taxistaDto) {
         try {
-            // Verificar si ya existe un taxista con esa licencia
-            Taxista existente = service.buscarPorLicencia(taxistaDto.getLicencia());
-            if (existente != null) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("error", "licencia_duplicada");
-                response.put("message", "Ya existe un taxista registrado con esta licencia");
-                return ResponseEntity.badRequest().body(response);
-            }
-
-            // Verificar si ya existe un taxista con ese email (si se proporcionó)
-            if (taxistaDto.getEmail() != null && !taxistaDto.getEmail().isEmpty()) {
-                Taxista existenteEmail = service.buscarPorEmail(taxistaDto.getEmail());
-                if (existenteEmail != null) {
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("error", "email_duplicado");
-                    response.put("message", "Ya existe un taxista registrado con este email");
-                    return ResponseEntity.badRequest().body(response);
-                }
-            }
-
-        Taxista taxista = convertToEntity(taxistaDto);
+            Taxista taxista = DtoConverter.toTaxistaEntity(taxistaDto);
         Taxista saved = service.crearTaxista(taxista); 
-        return ResponseEntity
-                .created(URI.create("/api/taxistas/" + saved.getIdTaxista()))
-                .body(convertToDto(saved));
+            return ResponseEntity.created(URI.create("/api/taxistas/" + saved.getIdTaxista()))
+                               .body(DtoConverter.toTaxistaDto(saved));
         } catch (DataIntegrityViolationException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("error", "datos_invalidos");
-            response.put("message", "Error al crear el taxista: datos inválidos o duplicados");
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Ya existe un taxista con esa licencia");
             return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("error", "error_interno");
-            response.put("message", "Error interno del servidor al crear el taxista");
-            return ResponseEntity.internalServerError().body(response);
         }
     }
 
@@ -96,43 +43,36 @@ public class TaxistaController {
     public List<TaxistaDto> listar() {
         List<Taxista> taxistas = service.listarTaxistas();
         return taxistas.stream()
-                       .map(this::convertToDto)
+                      .map(DtoConverter::toTaxistaDto)
                        .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TaxistaDto> getById(@PathVariable Integer id) {
-        Taxista t = service.buscarPorId(id);
-        if (t == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(convertToDto(t));
-    }
-
-    @GetMapping("/licencia/{licencia}")
-    public ResponseEntity<TaxistaDto> porLicencia(@PathVariable String licencia) {
-        Taxista t = service.buscarPorLicencia(licencia);
-        if (t == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(convertToDto(t));
+    public ResponseEntity<TaxistaDto> get(@PathVariable int id) {
+        Taxista taxista = service.buscarPorId(id);
+        if (taxista == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(DtoConverter.toTaxistaDto(taxista));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaxistaDto> actualizar(
-            @PathVariable Integer id,
-            @RequestBody TaxistaDto cambiosDto
-    ) {
-         Taxista cambios = convertToEntity(cambiosDto);
-        // Aquí deberías obtener la entidad existente de la base de datos
-        // y aplicar los cambios del DTO a esa entidad.
-        // No simplemente convertir el DTO a una nueva entidad.
-        // Por simplicidad actual, usaremos el enfoque directo, pero es una mejora futura.
+    public ResponseEntity<TaxistaDto> actualizar(@PathVariable int id,
+                                               @RequestBody TaxistaDto cambiosDto) {
+        Taxista cambios = DtoConverter.toTaxistaEntity(cambiosDto);
         Taxista updated = service.actualizarTaxista(id, cambios);
-        if (updated == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(convertToDto(updated));
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(DtoConverter.toTaxistaDto(updated));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> borrar(@PathVariable Integer id) {
-        boolean ok = service.borrarTaxista(id);
-        if (!ok) return ResponseEntity.notFound().build();
+    public ResponseEntity<Void> borrar(@PathVariable int id) {
+        boolean deleted = service.borrarTaxista(id);
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,6 +1,5 @@
 package com.taxiday.service.impl;
 
-import com.taxiday.dto.TurnoDto;
 import com.taxiday.model.Turno;
 import com.taxiday.model.Turno.EstadoTurno;
 import com.taxiday.repository.TurnoRepository;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class TurnoServiceImpl implements TurnoService {
@@ -19,34 +17,6 @@ public class TurnoServiceImpl implements TurnoService {
 
     public TurnoServiceImpl(TurnoRepository repo) {
         this.repo = repo;
-    }
-
-    // Helper para convertir Turno a TurnoDto
-    private TurnoDto convertToDto(Turno turno) {
-        if (turno == null) return null;
-        TurnoDto turnoDto = new TurnoDto();
-        turnoDto.setIdTurno(turno.getIdTurno());
-        turnoDto.setKmInicial(turno.getKmInicial());
-        turnoDto.setKmFinal(turno.getKmFinal());
-        turnoDto.setFechaInicio(turno.getFechaInicio());
-        turnoDto.setFechaFinal(turno.getFechaFinal());
-        turnoDto.setEstado(turno.getEstado());
-        // No incluimos Jornada en el DTO de Turno
-        return turnoDto;
-    }
-    
-     // Helper para convertir TurnoDto a Turno
-    private Turno convertToEntity(TurnoDto turnoDto) {
-         if (turnoDto == null) return null;
-         Turno turno = new Turno();
-         turno.setIdTurno(turnoDto.getIdTurno());
-         turno.setKmInicial(turnoDto.getKmInicial());
-         turno.setKmFinal(turnoDto.getKmFinal());
-         turno.setFechaInicio(turnoDto.getFechaInicio());
-         turno.setFechaFinal(turnoDto.getFechaFinal());
-         turno.setEstado(turnoDto.getEstado());
-         // La Jornada asociada debería manejarse al crear/actualizar el Turno
-         return turno;
     }
 
     @Override
@@ -76,19 +46,19 @@ public class TurnoServiceImpl implements TurnoService {
     public Turno actualizarTurno(int id, Turno cambios) {
         return repo.findById(id).map(t -> {
             if (cambios.getKmInicial() != null) {
-            t.setKmInicial(cambios.getKmInicial());
+                t.setKmInicial(cambios.getKmInicial());
             }
             if (cambios.getKmFinal() != null) {
-            t.setKmFinal(cambios.getKmFinal());
+                t.setKmFinal(cambios.getKmFinal());
             }
             if (cambios.getFechaInicio() != null) {
-            t.setFechaInicio(cambios.getFechaInicio());
+                t.setFechaInicio(cambios.getFechaInicio());
             }
             if (cambios.getFechaFinal() != null) {
-            t.setFechaFinal(cambios.getFechaFinal());
+                t.setFechaFinal(cambios.getFechaFinal());
             }
             if (cambios.getEstado() != null) {
-            t.setEstado(cambios.getEstado());
+                t.setEstado(cambios.getEstado());
             }
             if (cambios.getNotas() != null) {
                 t.setNotas(cambios.getNotas().trim());
@@ -109,7 +79,7 @@ public class TurnoServiceImpl implements TurnoService {
 
     @Override
     public Optional<Turno> cerrarTurno(int id, Turno datosCierre) {
-         return repo.findById(id).map(turno -> {
+        return repo.findById(id).map(turno -> {
             turno.setFechaFinal(LocalDateTime.now());
             turno.setKmFinal(datosCierre.getKmFinal());
             turno.setEstado(EstadoTurno.cerrado);
@@ -125,9 +95,6 @@ public class TurnoServiceImpl implements TurnoService {
         return repo.findByJornadaIdJornadaAndEstado(jornadaId, estado);
     }
 
-    /**
-     * Actualiza únicamente las notas de un turno sin modificar los demás campos
-     */
     @Override
     public Turno actualizarNotasTurno(int id, String notas) {
         return repo.findById(id).map(t -> {

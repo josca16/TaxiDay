@@ -9,6 +9,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import JornadasRecientes from '../components/JornadasRecientes';
 import ActiveJornada from '../components/ActiveJornada';
+import { toast } from 'react-hot-toast';
+import { toDateString, createAdjustedISOString } from '../utils/dateUtils';
 import 'react-calendar/dist/Calendar.css';
 
 // Página de inicio (requiere autenticación)
@@ -44,16 +46,14 @@ export default function Home() {
   // Mostrar formulario para crear turno
   const [showCrearTurnoForm, setShowCrearTurnoForm] = useState(false);
 
-  // Estado para mensaje de éxito tras cerrar turno
-  const [successMessage, setSuccessMessage] = useState(() => {
+  useEffect(() => {
     // Si venimos de cerrar turno, mostrar mensaje
     const msg = sessionStorage.getItem('successMessage');
     if (msg) {
       sessionStorage.removeItem('successMessage');
-      return msg;
+      toast.success(msg);
     }
-    return '';
-  });
+  }, []);
 
   // Estado para el modal de detalles
   const [modalDetalles, setModalDetalles] = useState({ open: false, jornada: null });
@@ -253,7 +253,7 @@ export default function Home() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            fechaFinal: new Date().toISOString(),
+            fechaFinal: createAdjustedISOString(),
             zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
           })
         });
@@ -377,7 +377,7 @@ export default function Home() {
           if (j.turnos) {
             j.turnos = j.turnos.map(t => {
               if (t.idTurno === turno.idTurno) {
-                return { ...t, estado: 'cerrado', kmFinal: parseFloat(formData.kmFinal), fechaFinal: new Date().toISOString() };
+                return { ...t, estado: 'cerrado', kmFinal: parseFloat(formData.kmFinal), fechaFinal: createAdjustedISOString() };
               }
               return t;
             });
@@ -395,9 +395,8 @@ export default function Home() {
         tipoPago: 'efectivo'
       });
       
-      // Mostrar mensaje de éxito
-      setSuccessMessage('Turno cerrado correctamente');
-      setTimeout(() => setSuccessMessage(''), 2000);
+      // Mostrar mensaje de éxito usando toast
+      toast.success('Turno cerrado correctamente');
       
       // Mostrar formulario para crear nuevo turno
       setShowCrearTurnoForm(true);
@@ -408,8 +407,7 @@ export default function Home() {
         }
       }, 100);
     } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(''), 2000);
+      toast.error(err.message);
     }
   };
 
@@ -437,7 +435,8 @@ export default function Home() {
         body: JSON.stringify({
           importeTotal: parseFloat(formData.importeTotal),
           tipoPago: formData.tipoPago,
-          fechaInicio: new Date().toISOString()
+          fechaInicio: createAdjustedISOString(),
+          zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
         })
       });
 
@@ -489,8 +488,8 @@ export default function Home() {
       setError(null);
       
       // Mostrar mensaje de éxito
-      setSuccessMessage('Carrera registrada correctamente');
-      setTimeout(() => setSuccessMessage(''), 2000);
+      toast.success('Carrera registrada correctamente');
+      setTimeout(() => toast.success(''), 2000);
       
     } catch (err) {
       console.error("Error al crear carrera:", err);
@@ -550,13 +549,6 @@ export default function Home() {
     }
   }, [activeJornadaId, turno]);
 
-  // Función para obtener solo la fecha (sin hora)
-  function toDateString(date) {
-    // Asegurar que la fecha se maneja correctamente sin importar el formato de entrada
-    const d = new Date(date);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
   // Días con jornadas - Mejorado para evitar problemas con formatos de fecha
   const jornadasPorFecha = {};
   jornadas.forEach(j => {
@@ -613,53 +605,53 @@ export default function Home() {
   };
 
   const handleCerrarJornada = async () => {
-                          if (window.confirm('¿Estás seguro de que deseas cerrar esta jornada? Esta acción no se puede deshacer.')) {
-                            try {
-                              const turnoActivo = jornadas.find(j => j.idJornada === activeJornadaId)?.turnos?.find(t => t.estado?.toLowerCase() === 'abierto');
-                              
-                              if (turnoActivo) {
-                                setError('No puedes cerrar la jornada mientras tengas un turno activo. Por favor, cierra el turno primero.');
-                                return;
-                              }
+    if (window.confirm('¿Estás seguro de que deseas cerrar esta jornada? Esta acción no se puede deshacer.')) {
+      try {
+        const turnoActivo = jornadas.find(j => j.idJornada === activeJornadaId)?.turnos?.find(t => t.estado?.toLowerCase() === 'abierto');
+        
+        if (turnoActivo) {
+          toast.error('No puedes cerrar la jornada mientras tengas un turno activo. Por favor, cierra el turno primero.');
+          return;
+        }
 
-                              const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                  fechaFinal: new Date().toISOString(),
-                                  zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
-                                })
-                              });
-                              
-                              if (!closeResp.ok) {
-                                const errorData = await closeResp.json();
-                                throw new Error(`Error al cerrar jornada: ${errorData.message || closeResp.statusText}`);
-                              }
-                              
-                              setSuccessMessage('Jornada cerrada correctamente');
-                              setActiveJornadaId(null);
-                              setTurno(null);
-                              
-                              const updatedJornadas = jornadas.map(j => {
-                                if (j.idJornada === activeJornadaId) {
-                                  return { ...j, estado: 'cerrada', fechaFinal: new Date().toISOString() };
-                                }
-                                return j;
-                              });
-                              
-                              setJornadas(updatedJornadas);
-                            } catch (err) {
-                              setError(err.message);
-                              setTimeout(() => setError(''), 2000);
-                            }
-                          }
+        const closeResp = await fetch(`/api/jornadas/${activeJornadaId}/cerrar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            fechaFinal: createAdjustedISOString(),
+            zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+          })
+        });
+        
+        if (!closeResp.ok) {
+          const errorData = await closeResp.json();
+          throw new Error(`Error al cerrar jornada: ${errorData.message || closeResp.statusText}`);
+        }
+        
+        // Actualizar el estado local de las jornadas
+        const updatedJornadas = jornadas.map(j => {
+          if (j.idJornada === activeJornadaId) {
+            return { ...j, estado: 'cerrada', fechaFinal: createAdjustedISOString() };
+          }
+          return j;
+        });
+        setJornadas(updatedJornadas);
+        
+        toast.success('Jornada cerrada correctamente');
+        setActiveJornadaId(null);
+        setTurno(null);
+        setShowCrearTurnoForm(false);
+      } catch (err) {
+        toast.error(err.message);
+      }
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-xl text-gray-300">Cargando...</div>
-                      </div>
+      </div>
     );
   }
 
@@ -671,18 +663,12 @@ export default function Home() {
 
       {/* Contenido principal */}
       <div className="flex-1 container mx-auto px-6 py-8">
-        {/* Mensajes de error y éxito */}
+        {/* Mensajes de error */}
         {error && (
           <div className="mb-6 bg-red-800/40 border border-red-700/50 text-red-200 px-6 py-4 rounded-lg text-sm animate-fade-in">
             {error}
-                    </div>
-                  )}
-
-      {successMessage && (
-          <div className="mb-6 bg-green-800/40 border border-green-700/50 text-green-200 px-6 py-4 rounded-lg text-sm animate-fade-in">
-          {successMessage}
-                </div>
-      )}
+          </div>
+        )}
 
         {/* Panel de estadísticas */}
         <StatsPanel stats={stats} icons={icons} />
@@ -692,7 +678,7 @@ export default function Home() {
           <div className="bg-surface/70 backdrop-blur-sm rounded-xl border border-border shadow-lg overflow-hidden">
             <div className="px-6 py-5 border-b border-border">
               <h2 className="text-xl font-bold text-primary">Tu Jornada</h2>
-                </div>
+            </div>
             
             <div className="p-6">
               <ActiveJornada
@@ -731,12 +717,12 @@ export default function Home() {
                     setCurrentYear={setCurrentYear}
                     setMonthlyStats={setMonthlyStats}
                   />
-                    </div>
+                </div>
                 
                 <p className="text-sm text-text-muted text-center">
                   Los días con jornadas están marcados. Haz clic para ver detalles.
                 </p>
-                </div>
+              </div>
             </div>
             
             {/* Estadísticas mensuales */}
@@ -759,10 +745,10 @@ export default function Home() {
               setCurrentMonth={setCurrentMonth}
               setCurrentYear={setCurrentYear}
             />
-              </div>
-                                  </div>
-                                </div>
-                                
+          </div>
+        </div>
+      </div>
+      
       <Footer />
       
       {/* Modal para detalles */}

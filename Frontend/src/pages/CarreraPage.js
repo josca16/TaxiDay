@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import ModalDetalles from '../components/ModalDetalles';
 import ErrorMessage from '../components/ErrorMessage';
 import { toast } from 'react-hot-toast';
+import { formatTime, createAdjustedISOString } from '../utils/dateUtils';
 
 export default function CarreraPage() {
   const { jornadaId, turnoId } = useParams();
@@ -243,26 +244,22 @@ export default function CarreraPage() {
   const handleGuardarCarrera = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccessMessage('');
     setLoading(true);
 
     if (!isAuthenticated || !user) {
-      setError('Usuario no autenticado.');
-      setTimeout(() => setError(''), 2000);
+      toast.error('Usuario no autenticado.');
       setLoading(false);
       return;
     }
 
     if (turnoCerrado) {
-      setError('No puedes agregar carreras a un turno cerrado.');
-      setTimeout(() => setError(''), 2000);
+      toast.error('No puedes agregar carreras a un turno cerrado.');
       setLoading(false);
       return;
     }
 
     if (!carreraData.precio || parseFloat(carreraData.precio) <= 0) {
-      setError('Por favor, introduce un precio válido mayor que 0.');
-      setTimeout(() => setError(''), 2000);
+      toast.error('Por favor, introduce un precio válido mayor que 0.');
       setLoading(false);
       return;
     }
@@ -271,8 +268,7 @@ export default function CarreraPage() {
     const precioTotal = parseFloat(carreraData.precio);
     
     if (precioTaximetro > precioTotal) {
-      setError('El importe del taxímetro no puede ser mayor que el importe total.');
-      setTimeout(() => setError(''), 2000);
+      toast.error('El importe del taxímetro no puede ser mayor que el importe total.');
       setLoading(false);
       return;
     }
@@ -288,13 +284,13 @@ export default function CarreraPage() {
         esAeropuerto: carreraData.esAeropuerto || false,
         esEmisora: carreraData.esEmisora || false,
         notas: carreraData.notas || '',
-        fechaInicio: new Date().toISOString(),
+        fechaInicio: createAdjustedISOString(),
         zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
       };
       
       console.log('Enviando datos de carrera:', datosCarrera);
       
-      const resp = await fetch(`/api/turnos/${turnoId}/carreras`, {
+      const resp = await fetch(`/api/carreras/turno/${turnoId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -324,7 +320,7 @@ export default function CarreraPage() {
         tipoPago: carreraNueva.tipoPago || tipoPagoFinal,
         esAeropuerto: carreraNueva.esAeropuerto || carreraData.esAeropuerto || false,
         esEmisora: carreraNueva.esEmisora || carreraData.esEmisora || false,
-        fecha: carreraNueva.fecha || carreraNueva.fechaInicio || new Date().toISOString(),
+        fecha: carreraNueva.fecha || carreraNueva.fechaInicio || createAdjustedISOString(),
         notas: carreraNueva.notas || carreraData.notas || ''
       };
       
@@ -342,8 +338,7 @@ export default function CarreraPage() {
         esEmisora: false,
         notas: '' 
       });
-      setSuccessMessage('Carrera registrada exitosamente');
-      setTimeout(() => setSuccessMessage(''), 2000);
+      toast.success('Carrera registrada exitosamente');
     } catch (err) {
       console.error('Error registrando carrera:', err);
       setError(err.message);
@@ -392,7 +387,7 @@ export default function CarreraPage() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            fechaFinal: new Date().toISOString(),
+            fechaFinal: createAdjustedISOString(),
             zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
           })
         });
@@ -405,8 +400,8 @@ export default function CarreraPage() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Guardar mensaje de éxito en sessionStorage para mostrarlo en Home
-      sessionStorage.setItem('successMessage', 'Turno cerrado correctamente');
+      // Mostrar mensaje de éxito usando toast
+      toast.success('Turno cerrado correctamente');
       
       // Limpiar el intervalo de estadísticas si existe
       if (intervaloEstadisticas) {
@@ -422,7 +417,7 @@ export default function CarreraPage() {
       navigate('/home');
     } catch (err) {
       console.error('Error:', err);
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -757,7 +752,7 @@ export default function CarreraPage() {
               <div>
                 <p className="text-text-muted text-sm">Hora Inicio</p>
                 <p className="font-medium">
-                  {turnoInfo.horaInicio ? new Date(turnoInfo.horaInicio).toLocaleTimeString() : 'N/A'}
+                  {turnoInfo.horaInicio ? formatTime(turnoInfo.horaInicio) : 'N/A'}
                 </p>
               </div>
               
@@ -1082,11 +1077,7 @@ export default function CarreraPage() {
                             )}
                           </div>
                           <div className="text-text-muted text-sm">
-                            {new Date(carrera.fecha).toLocaleTimeString('es-ES', { 
-                              hour: '2-digit', 
-                              minute: '2-digit',
-                              hour12: false 
-                            })}
+                            {formatTime(carrera.fecha)}
                           </div>
                         </div>
                         

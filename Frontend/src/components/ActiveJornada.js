@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatTime } from '../utils/dateUtils';
 
 export default function ActiveJornada({
   activeJornadaId,
@@ -73,11 +74,7 @@ export default function ActiveJornada({
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-primary">Turno #{turno.idTurno}</h4>
-                <span className="text-sm text-text-muted">Inicio: {new Date(turno.fechaInicio).toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: false 
-                })}</span>
+                <span className="text-sm text-text-muted">Inicio: {formatTime(turno.fechaInicio)}</span>
               </div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex-1">

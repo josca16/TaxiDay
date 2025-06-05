@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatTime, formatDateTime } from '../utils/dateUtils';
 
 const ModalDetalles = ({ isOpen, onClose, jornadaId }) => {
   const [loading, setLoading] = useState(true);
@@ -55,9 +56,8 @@ const ModalDetalles = ({ isOpen, onClose, jornadaId }) => {
 
   if (!isOpen) return null;
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return '-';
-    return new Date(fecha).toLocaleString();
+  const formatearFecha = (fecha, esFechaFinal = false) => {
+    return formatDateTime(fecha, esFechaFinal);
   };
 
   const calcularTotalCarreras = (turnos) => {
@@ -197,7 +197,7 @@ const ModalDetalles = ({ isOpen, onClose, jornadaId }) => {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-text-muted">Fin:</span>
-                            <span className="font-medium">{formatearFecha(jornadaInfo.fechaFinal)}</span>
+                            <span className="font-medium">{jornadaInfo.fechaFinal ? formatearFecha(jornadaInfo.fechaFinal, true) : 'En curso'}</span>
                           </div>
                         </div>
                       </div>
@@ -351,7 +351,7 @@ const ModalDetalles = ({ isOpen, onClose, jornadaId }) => {
                                       <div className="bg-surface-dark p-3 rounded border border-border">
                                         <span className="text-gray-400 text-sm">Hora</span>
                                         <p className="text-white font-medium">
-                                          {carrera.fechaInicio ? new Date(carrera.fechaInicio).toLocaleTimeString() : '-'}
+                                          {formatTime(carrera.fechaInicio)}
                                         </p>
                                       </div>
                                       <div className="bg-surface-dark p-3 rounded border border-border">

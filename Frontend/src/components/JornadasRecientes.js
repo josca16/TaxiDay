@@ -1,9 +1,5 @@
 import React from 'react';
-
-function toDateString(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { formatTime, toDateString, formatDateTime } from '../utils/dateUtils';
 
 export default function JornadasRecientes({
   selectedDate,
@@ -61,11 +57,7 @@ export default function JornadasRecientes({
                   )}
                 </div>
                 <div className="text-text-muted text-sm">
-                  {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: false 
-                  })}
+                  {jornada.fechaInicio && formatTime(jornada.fechaInicio)}
                 </div>
               </div>
               
@@ -135,7 +127,7 @@ export default function JornadasRecientes({
                   )}
                 </div>
                 <div className="text-text-muted text-sm">
-                  {jornada.fechaInicio && new Date(jornada.fechaInicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  {jornada.fechaInicio && formatTime(jornada.fechaInicio)}
                 </div>
               </div>
               
@@ -213,7 +205,7 @@ export default function JornadasRecientes({
       <div className="px-6 py-5 border-b border-border flex justify-between items-center">
         <h2 className="text-xl font-bold text-primary">
           {selectedDate 
-            ? `Jornadas del ${selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}` 
+            ? `Jornadas del ${formatDateTime(selectedDate)}` 
             : 'Jornadas Recientes'}
         </h2>
         
