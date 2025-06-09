@@ -10,6 +10,11 @@ import com.taxiday.model.Taxista;
 import com.taxiday.model.Jornada;
 import java.util.stream.Collectors;
 
+// Esta clase se encarga de convertir datos entre los objetos que usa la aplicación (como Turno, Carrera, Taxista y Jornada) 
+// y los objetos que se envían o reciben al comunicarse con otras partes del sistema. Esto ayuda a organizar mejor la información 
+// y a asegurarse de que solo se compartan los datos necesarios.
+
+
 public class DtoConverter {
     
     // Métodos para Turno
@@ -136,4 +141,4 @@ public class DtoConverter {
         jornada.setEstado(jornadaDto.getEstado());
         return jornada;
     }
-} 
+}

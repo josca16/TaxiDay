@@ -1,4 +1,3 @@
-// src/main/java/com/taxiday/controller/JornadaController.java
 package com.taxiday.controller;
 
 import com.taxiday.dto.JornadaDto;

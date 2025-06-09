@@ -4,6 +4,32 @@ import RegisterPage from './RegisterPage';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
+
+
+// Este archivo define el componente AuthPage, que es la página principal de autenticación de la aplicación.
+// Está relacionado con otros archivos de autenticación como AuthContext.js, LoginPage.js, RegisterPage.js y ProtectedRoute.js.
+
+// Relación con otros archivos:
+// - **AuthContext.js**: Proporciona el contexto de autenticación, que incluye el estado del usuario y funciones como login y logout.
+//   En este archivo, se utiliza el hook `useAuth` para verificar si el usuario está autenticado y redirigirlo a la página principal si ya inició sesión.
+// - **LoginPage.js**: Es el formulario de inicio de sesión que se muestra cuando el usuario quiere acceder a su cuenta.
+//   En este archivo, se renderiza LoginPage si `showRegister` es falso.
+// - **RegisterPage.js**: Es el formulario de registro que se muestra cuando el usuario quiere crear una nueva cuenta.
+//   En este archivo, se renderiza RegisterPage si `showRegister` es verdadero.
+// - **ProtectedRoute.js**: Protege las rutas que requieren autenticación. Si el usuario no está autenticado, lo redirige a esta página de autenticación.
+
+// Funcionalidades principales:
+// - Si el usuario ya está autenticado (verificado con `useAuth`), lo redirige automáticamente a la página principal (`/home`).
+// - Permite alternar entre el formulario de inicio de sesión (LoginPage) y el formulario de registro (RegisterPage) mediante un botón.
+// - Muestra un diseño atractivo con un encabezado, información sobre la plataforma y un formulario de autenticación.
+// - Incluye un pie de página con información de derechos reservados.
+
+// Este archivo actúa como el punto de entrada para que los usuarios inicien sesión o se registren en la aplicación, 
+// y utiliza los demás componentes y el contexto de autenticación para gestionar el flujo de autenticación.
+
+
+
+
 const AuthPage = () => {
   const { isAuthenticated } = useAuth();
   const [showRegister, setShowRegister] = useState(false);

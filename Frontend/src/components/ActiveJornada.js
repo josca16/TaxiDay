@@ -2,6 +2,25 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatTime } from '../utils/dateUtils';
 
+// Este archivo define el componente ActiveJornada, que se encarga de mostrar y gestionar el estado de una jornada activa en la aplicación.
+// Dependiendo de si hay una jornada activa o no, el componente muestra diferentes interfaces y funcionalidades:
+
+// - Si no hay una jornada activa:
+//   - Muestra un mensaje indicando que no hay jornada activa.
+//   - Permite al usuario crear una nueva jornada mediante un botón.
+
+// - Si hay una jornada activa:
+//   - Muestra información sobre la jornada activa, como su ID.
+//   - Si hay un turno activo dentro de la jornada:
+//     - Muestra detalles del turno, como los kilómetros iniciales y finales.
+//     - Permite registrar carreras dentro del turno.
+//     - Permite cerrar el turno actual.
+//   - Si no hay un turno activo:
+//     - Permite al usuario crear un nuevo turno ingresando los kilómetros iniciales.
+
+// Además, el componente incluye botones para cerrar la jornada activa y navegar a otras partes de la aplicación.
+// También maneja estados como `loading` para deshabilitar botones mientras se realizan acciones asincrónicas.
+
 export default function ActiveJornada({
   activeJornadaId,
   turno,
@@ -186,4 +205,4 @@ export default function ActiveJornada({
       )}
     </div>
   );
-} 
+}

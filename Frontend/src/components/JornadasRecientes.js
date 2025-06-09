@@ -1,6 +1,26 @@
 import React from 'react';
 import { formatTime, toDateString, formatDateTime } from '../utils/dateUtils';
 
+// Este archivo define el componente JornadasRecientes, que se encarga de mostrar una lista de jornadas recientes o las jornadas de un día específico.
+// Su propósito es permitir al usuario visualizar y gestionar jornadas pasadas o actuales de manera organizada y sencilla.
+
+// Funcionalidades principales:
+// - Si se selecciona una fecha:
+//   - Muestra las jornadas correspondientes a ese día.
+//   - Si no hay jornadas en esa fecha, muestra un mensaje indicando que no hay jornadas y un botón para crear una nueva jornada.
+// - Si no se selecciona una fecha:
+//   - Muestra las jornadas más recientes (hasta 5).
+//   - Si hay más de 5 jornadas, permite al usuario ver más jornadas con un botón.
+//   - Si no hay jornadas registradas, muestra un mensaje indicando que no hay jornadas y un botón para crear una nueva jornada.
+
+// Cada jornada incluye:
+// - Su ID y estado (activa o cerrada).
+// - Información como el número de turnos, carreras y el total recaudado.
+// - Botones para continuar una jornada activa o ver los detalles de una jornada cerrada.
+
+// Además, el componente permite alternar entre ver jornadas recientes y las jornadas de una fecha específica,
+// y maneja acciones como crear una nueva jornada, continuar una jornada activa o ver detalles de una jornada.
+
 export default function JornadasRecientes({
   selectedDate,
   jornadas,
@@ -231,4 +251,4 @@ export default function JornadasRecientes({
       </div>
     </div>
   );
-} 
+}
