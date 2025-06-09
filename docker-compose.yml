@@ -1,44 +1,48 @@
 version: "3.8"
 
 services:
+  # Servicio de la base de datos
   database:
-    image: mariadb:10.7
-    container_name: taxiday_db
-    restart: always
+    image: mariadb:10.7 # Usa la imagen de MariaDB versión 10.7
+    container_name: taxiday_db # Nombre del contenedor para la base de datos
+    restart: always # Reinicia el contenedor automáticamente si se detiene
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: AppTaxiDay
+      MYSQL_ROOT_PASSWORD: root # Contraseña para el usuario root de la base de datos
+      MYSQL_DATABASE: AppTaxiDay # Nombre de la base de datos que se creará al iniciar
     ports:
-      - "3306:3306"
+      - "3306:3306" # Expone el puerto 3306 (puerto por defecto de MariaDB) para conexiones externas
     volumes:
       - type: bind
-        source: ${PWD}/init.sql
-        target: /docker-entrypoint-initdb.d/init.sql
+        source: ${PWD}/init.sql # Archivo SQL inicial para configurar la base de datos
+        target: /docker-entrypoint-initdb.d/init.sql # Ruta dentro del contenedor donde se ejecutará el script SQL
 
+  # Servicio de Adminer (interfaz gráfica para gestionar la base de datos)
   adminer:
-    image: adminer
-    restart: always
+    image: adminer # Usa la imagen de Adminer
+    restart: always # Reinicia el contenedor automáticamente si se detiene
     ports:
-      - "8082:8080"
+      - "8082:8080" # Expone el puerto 8080 de Adminer en el puerto 8082 del host
 
+  # Servicio del backend (aplicación Spring Boot)
   backend:
     build:
-      context: ./Backend
-    container_name: spring-boot-app
+      context: ./Backend # Ruta al directorio donde se encuentra el código del backend
+    container_name: spring-boot-app # Nombre del contenedor para el backend
     depends_on:
-      - database
+      - database # Asegura que el servicio de la base de datos esté disponible antes de iniciar el backend
     ports:
-      - "8085:8085"
+      - "8085:8085" # Expone el puerto 8085 del backend para conexiones externas
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mariadb://database:3306/AppTaxiDay
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_URL: jdbc:mariadb://database:3306/AppTaxiDay # URL de conexión a la base de datos
+      SPRING_DATASOURCE_USERNAME: root # Usuario para conectarse a la base de datos
+      SPRING_DATASOURCE_PASSWORD: root # Contraseña para conectarse a la base de datos
 
+  # Servicio del frontend (aplicación web)
   webfrontend:
     build:
-      context: ./Frontend
-    container_name: frontend
+      context: ./Frontend # Ruta al directorio donde se encuentra el código del frontend
+    container_name: frontend # Nombre del contenedor para el frontend
     depends_on:
-      - backend
+      - backend # Asegura que el backend esté disponible antes de iniciar el frontend
     ports:
-      - "80:80"
+      - "80:80" # Expone el puerto 80 del frontend para conexiones externas

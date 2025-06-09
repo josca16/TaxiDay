@@ -1,23 +1,22 @@
 ## 🚖 TaxiDay - TFG de Desarrollo de Aplicaciones Multiplataforma
 
-TaxiDay es una aplicación destinada a la gestión de jornadas y carreras de taxistas, facilitando el control de sus actividades diarias. El proyecto está diseñado para ser multiplataforma, contando con aplicaciones tanto para dispositivos móviles como para acceso web.
+TaxiDay es una aplicación destinada a la gestión de jornadas y carreras de taxistas, facilitando el control de sus actividades diarias. El proyecto está diseñado para ser multiplataforma, permitiendo el acceso desde la web con diseño responsive adaptado a dispositivos móviles.
 
 ---
 
 ### 🌟 Objetivo Principal
 
-Crear una plataforma que permita a los taxistas registrar y gestionar sus jornadas laborales y carreras, accediendo a la información tanto desde el móvil como desde la web, con especial atención a una experiencia rápida, sencilla y segura.
+Crear una plataforma que permita a los taxistas registrar y gestionar sus jornadas laborales y carreras, accediendo a la información desde la web, con especial atención a una experiencia rápida, sencilla y segura.
 
 ---
 
 ## 🛠️ Tecnologías Utilizadas
 
-- **Backend:** Java con Spring Boot
-- **Frontend Web:** React
-- **Frontend Móvil:** React Native con Expo
-- **Base de Datos:** MariaDB
-- **Contenedores:** Docker y Docker Compose
-- **Herramientas:** Adminer para gestión visual de la base de datos
+* **Backend:** Java con Spring Boot
+* **Frontend Web:** React
+* **Base de Datos:** MariaDB
+* **Contenedores:** Docker y Docker Compose
+* **Herramientas:** Adminer para gestión visual de la base de datos
 
 ---
 
@@ -25,97 +24,124 @@ Crear una plataforma que permita a los taxistas registrar y gestionar sus jornad
 
 ```
 TaxiDay/
-├── Backend/               # Backend en Java (Spring Boot)
-│   ├── src/               # Código fuente
-│   └── Dockerfile         # Dockerfile para el backend
-├── MobileFrontend/        # Frontend móvil (React Native con Expo)
-│   └── Dockerfile         # (pendiente de implementación)
-├── WebFrontend/           # Frontend web (React)
-│   └── Dockerfile         # (pendiente de implementación)
-├── init.sql               # Script para inicializar la base de datos
-└── docker-compose.yml     # Orquestación de contenedores
+├── Backend/                  # Backend en Java (Spring Boot)
+│   ├── src/                 # Código fuente
+│   └── Dockerfile           # Dockerfile para el backend
+├── WebFrontend/             # Frontend web (React)
+│   ├── src/                 # Código fuente del frontend web
+│   └── Dockerfile           # Dockerfile para el frontend web
+├── init.sql                 # Script para inicializar la base de datos
+└── docker-compose.yml       # Orquestación de contenedores
 ```
 
 ---
 
-## 🐳 Gestión de Docker para TaxiDay
+## ⚙️ Cómo levantar el proyecto
 
-### 🔄 Comando principal (modo *detached*)
+### 1. Requisitos previos
 
-```bash
-docker compose up -d --build
-```
+Antes de comenzar, asegúrate de tener instalado:
 
-- ✅ Lanza todos los contenedores en segundo plano
-- 🔄 Reconstruye si hay cambios
+* [Docker](https://www.docker.com/) y [Docker Compose](https://docs.docker.com/compose/)
 
-### 📋 Ver logs de los servicios
+### 2. Clona el repositorio
 
 ```bash
-docker compose logs -f
+git clone https://github.com/josca16/TaxiDay.git
+cd TaxiDay
 ```
 
-Ver logs de un contenedor específico:
+### 3. Configura el entorno (si aplica)
+
+Revisa que los puertos en `docker-compose.yml` no estén ocupados. Si necesitas configurar variables de entorno, puedes añadir un archivo `.env`.
+
+### 4. Levanta los servicios
 
 ```bash
-docker compose logs -f spring-boot-app
+docker-compose up -d
 ```
 
-### ⛔ Parar todos los contenedores
+Esto iniciará:
 
-```bash
-docker compose down
-```
+* El backend de Spring Boot
+* El frontend de React
+* La base de datos MariaDB
+* Adminer como interfaz para gestionar la base de datos
 
-### 🐚 Acceder a la base de datos desde el contenedor
+### 5. Accede a la aplicación
 
-```bash
-docker exec -it taxiday_db bash
-```
+* **Frontend Web:** [http://localhost](http://localhost:3000)
+* **Adminer:** [http://localhost:808](http://localhost:8080)2
 
-Y luego:
+### 6. Accede a la base de datos en Adminer
 
-```bash
-mariadb -uroot -proot
-```
+**Credenciales:**
+
+* Servidor: `database`
+* Usuario: `root`
+* Contraseña: `root`
+* Base de datos: `AppTaxiDay`
 
 ---
 
-### 🌐 Acceder a Adminer
+## 🔧 Comandos Útiles
 
-Abre en tu navegador:
+🔄 Reconstruir todos los contenedores:
 
-```text
-http://localhost:8082
+```bash
+docker-compose up -d --build
 ```
 
-- **Servidor:** `database`
-- **Usuario:** `root`
-- **Contraseña:** `root`
-- **Base de datos:** `AppTaxiDay`
+📋 Ver logs de los servicios:
+
+```bash
+docker-compose logs
+```
+
+📋 Ver logs de un contenedor específico:
+
+```bash
+docker-compose logs <nombre_servicio>
+```
+
+⛔ Parar todos los contenedores:
+
+```bash
+docker-compose down
+```
+
+🐚 Acceder a la base de datos desde el contenedor:
+
+```bash
+docker exec -it <nombre_contenedor_db> sh
+mysql -u root -p
+```
 
 ---
 
 ## 💡 Decisiones de Arquitectura
 
-- Frontend móvil y web se mantienen separados para ofrecer una mejor experiencia según el dispositivo
-- Todo el sistema se ejecuta en contenedores para un entorno limpio, replicable y consistente
-- Adminer está disponible para una visualización cómoda de la base de datos
+* Frontend web con diseño responsive para adaptarse a distintos tamaños de pantalla.
+* Todo el sistema se ejecuta en contenedores para un entorno limpio, replicable y consistente.
+* Adminer está disponible para una visualización cómoda de la base de datos.
+* La lógica de negocio y la autenticación están centralizadas en el backend.
 
 ---
 
-## 🚧 Próximos Pasos
+## 🚀 Funcionalidades Implementadas
 
-- Crear endpoints REST en el backend para iniciar la conexión
-- Implementar autenticación y lógica de negocio
-- Conectar los frontends al backend
-- Añadir sensores de localización GPS en la app móvil
+* Gestión de Jornadas: Crear, visualizar y cerrar jornadas laborales.
+* Gestión de Turnos: Registrar turnos dentro de las jornadas, incluyendo kilómetros iniciales y finales.
+* Registro de Carreras: Añadir carreras con detalles como origen, destino y tarifa.
+* Autenticación: Sistema de login y registro de usuarios con roles.
+* Estadísticas: Visualización de estadísticas diarias y mensuales.
+* Soporte Web Adaptativo: Interfaz responsive adaptable a diferentes dispositivos.
 
 ---
 
 ## ✅ Estado actual
 
-✔️ Backend operativo y contenedor funcional con acceso a MariaDB y Adminer. Listo para el desarrollo.
-
-¿Quieres que generemos también las primeras entidades o controladores para tu backend?
-
+✔️ Backend completamente desarrollado con endpoints REST funcionales.
+✔️ Frontend web conectado al backend.
+✔️ Base de datos configurada y operativa con acceso a través de Adminer.
+✔️ Contenedores Docker listos para despliegue en cualquier entorno.
